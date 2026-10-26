@@ -16,7 +16,7 @@ jobs:
       # Signing turns on automatically once these repository secrets exist (needs a paid Apple Developer account).
       HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_TEAM_ID != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Version from tag
         id: v
