@@ -36,11 +36,24 @@ xcodebuild -project TrackerForGitHub.xcodeproj -scheme TrackerForGitHub -configu
 BUILT="$BUILD_DIR/dd/Build/Products/Release/$APP_NAME.app"
 [ -d "$BUILT" ] || fail "Build finished but the app wasn't found at: $BUILT"
 
-# 4. Replace any running copy and install.
-pkill -x "$APP_NAME" 2>/dev/null || true
+# 4. Quit any running copy and wait until it's really gone (relaunching too soon fails with error -600).
+if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
+  echo "Quitting the running copy…"
+  pkill -x "$APP_NAME" 2>/dev/null || true
+  for _ in $(seq 1 20); do pgrep -x "$APP_NAME" >/dev/null 2>&1 || break; sleep 0.25; done
+  pkill -9 -x "$APP_NAME" 2>/dev/null || true
+  sleep 1
+fi
+
 rm -rf "/Applications/$APP_NAME.app"
 ditto "$BUILT" "/Applications/$APP_NAME.app" || fail "Couldn't copy into /Applications. Check you have permission to write there."
 
 echo "Installed to /Applications/$APP_NAME.app. Opening it…"
-open "/Applications/$APP_NAME.app"
-echo "Done. Look for the small graph icon in your menu bar."
+for attempt in 1 2 3; do
+  if open "/Applications/$APP_NAME.app" 2>/dev/null; then
+    echo "Done. Look for the small graph icon in your menu bar."
+    exit 0
+  fi
+  sleep 2
+done
+fail "Installed, but macOS wouldn't open it yet. Open Applications and double-click $APP_NAME."
