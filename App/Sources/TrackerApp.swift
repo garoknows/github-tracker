@@ -33,9 +33,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.delegate = self
         popover.contentViewController = NSHostingController(rootView: PopoverView(model: model))
 
-        model.onChange = { [weak self] in self?.updateIcon() }
+        model.onChange = { [weak self] in
+            guard let self else { return }
+            self.updateIcon()
+            self.model.applyAppearance(to: self.popover)
+        }
         model.onClose = { [weak self] in self?.popover.performClose(nil) }
         updateIcon()
+        model.applyAppearance(to: popover)
         model.start()
 
         DistributedNotificationCenter.default().addObserver(
@@ -67,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         model.index = 0
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        model.applyAppearance(to: popover)
         popover.contentViewController?.view.window?.makeKey()
         startMonitoring()
     }

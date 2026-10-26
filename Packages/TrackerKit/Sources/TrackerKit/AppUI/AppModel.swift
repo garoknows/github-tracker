@@ -242,6 +242,22 @@ public final class AppModel {
         tokenStatus = "Token removed from your Keychain."
     }
 
+    // MARK: Appearance
+
+    /// Makes the popover's own background follow the Appearance setting. SwiftUI's preferredColorScheme
+    /// only changes the content, and the popover's glass otherwise follows the window it's attached to
+    /// (the menu bar), so a Light choice on a Dark Mac drew dark text on dark glass.
+    /// Call it again after the popover is shown, when its window exists.
+    public func applyAppearance(to popover: NSPopover) {
+        let chosen: NSAppearance? = switch appearance {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+        popover.appearance = chosen
+        popover.contentViewController?.view.window?.appearance = chosen
+    }
+
     // MARK: Launch at login
 
     public private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled

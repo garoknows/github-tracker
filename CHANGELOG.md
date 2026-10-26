@@ -2,6 +2,15 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-10-26
+
+### Fixed
+- **The year contribution graph was missing from the menu bar popover.** The popover sized itself before the graph had a height, so the graph got none. The graph now always takes the height its width needs, everywhere: popover, Small, Medium and Large widgets.
+- **Hard-to-read popover when Appearance doesn't match macOS.** With Appearance set to Light on a Mac in Dark Mode (or the other way round), the popover's see-through background could stay dark under dark text. The popover now has a solid background that follows the Appearance setting.
+
+### Added
+- Regression tests that would have caught both bugs: the graph's size under every kind of layout request, and a test that opens a real popover on screen, checks the graph has room and the background matches the chosen appearance, and saves screenshots.
+
 ## [1.0.0] - 2026-10-26
 
 First release.
@@ -16,4 +25,5 @@ First release.
 - Color themes (GitHub Green, Halloween, Ocean, Mono), System/Light/Dark appearance, Launch at login, Check for updates.
 - VoiceOver labels for every graph day and the quadrant chart.
 
+[1.0.1]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.1
 [1.0.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.0

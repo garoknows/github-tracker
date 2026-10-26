@@ -52,7 +52,7 @@ public struct WidgetCardView<Navigation: View>: View {
         case .small:
             VStack(alignment: .leading, spacing: 8) {
                 ProfileHeader(profile: snap.profile, avatarData: avatarData, avatarSize: 30)
-                ContributionGraphView(days: snap.calendar.lastWeeks(12), theme: theme, showLabels: false, interactive: false)
+                ContributionGraphView(days: snap.calendar.lastWeeks(12), theme: theme, showLabels: false, interactive: false, maxHeight: 58)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -69,7 +69,7 @@ public struct WidgetCardView<Navigation: View>: View {
                     Spacer()
                     navigation
                 }
-                ContributionGraphView(days: snap.calendar.lastWeeks(20), theme: theme, showLabels: false, interactive: false)
+                ContributionGraphView(days: snap.calendar.lastWeeks(20), theme: theme, showLabels: false, interactive: false, maxHeight: 60)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
                 HStack(spacing: 14) {
@@ -91,7 +91,7 @@ public struct WidgetCardView<Navigation: View>: View {
                     Spacer()
                     navigation
                 }
-                ContributionGraphView(days: snap.calendar.lastWeeks(26), theme: theme, showLabels: true, interactive: false)
+                ContributionGraphView(days: snap.calendar.lastWeeks(26), theme: theme, showLabels: true, interactive: false, maxHeight: 92)
                 HStack(spacing: 14) {
                     stat("\(s.total.formatted())", "this year")
                     stat("\(s.currentStreak.length)", "current")

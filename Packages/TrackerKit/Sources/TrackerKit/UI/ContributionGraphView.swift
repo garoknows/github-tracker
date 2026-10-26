@@ -7,16 +7,20 @@ public struct ContributionGraphView: View {
     let theme: ColorTheme
     let showLabels: Bool
     let interactive: Bool
+    let maxHeight: CGFloat?
 
     @Environment(\.colorScheme) private var scheme
     @State private var hovered: ContributionDay?
     @State private var hoverPoint: CGPoint = .zero
 
-    public init(days: [ContributionDay], theme: ColorTheme, showLabels: Bool = true, interactive: Bool = true) {
+    /// - Parameter maxHeight: caps the height (the graph then scales down to keep its shape); used by widgets.
+    public init(days: [ContributionDay], theme: ColorTheme, showLabels: Bool = true, interactive: Bool = true,
+                maxHeight: CGFloat? = nil) {
         self.days = days
         self.theme = theme
         self.showLabels = showLabels
         self.interactive = interactive
+        self.maxHeight = maxHeight
     }
 
     struct Layout {
@@ -46,6 +50,10 @@ public struct ContributionGraphView: View {
             cell = Self.nominalCell * scale
         }
 
+        var nominalWidth: CGFloat {
+            padLeft + CGFloat(columns) * step - (step - cell)
+        }
+
         var nominalAspect: CGFloat {
             let w = padLeft + CGFloat(columns) * step - (step - cell)
             let h = padTop + 7 * step - (step - cell)
@@ -66,8 +74,11 @@ public struct ContributionGraphView: View {
     }
 
     public var body: some View {
-        let aspect = Layout(days: days, labels: showLabels, size: nil).nominalAspect
-        GeometryReader { proxy in
+        let nominal = Layout(days: days, labels: showLabels, size: nil)
+        // Rigid sizing: height always follows width. A bare GeometryReader is flexible and can be
+        // given zero height when a popover or widget measures its content, which hid the graph in 1.0.0.
+        AspectSizer(aspect: nominal.nominalAspect, idealWidth: nominal.nominalWidth, maxHeight: maxHeight) {
+            GeometryReader { proxy in
             Canvas { context, size in
                 draw(in: &context, size: size)
             }
@@ -83,8 +94,8 @@ public struct ContributionGraphView: View {
                 }
             }
             .overlay(alignment: .topLeading) { tooltip(in: proxy.size) }
+            }
         }
-        .aspectRatio(aspect, contentMode: .fit)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Contribution graph")
         .accessibilityChildren {
@@ -171,5 +182,41 @@ public struct LegendView: View {
         .foregroundStyle(Palette(scheme).muted)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Color scale from fewer to more contributions")
+    }
+}
+
+/// Sizes its content to the offered width (or `idealWidth` when none is offered) with a fixed aspect
+/// ratio, and never gives up height to siblings. The graph always gets the room it needs.
+struct AspectSizer: Layout {
+    let aspect: CGFloat
+    let idealWidth: CGFloat
+    var maxHeight: CGFloat? = nil
+
+    func size(for proposal: ProposedViewSize) -> CGSize {
+        var width = proposal.width ?? idealWidth
+        if !width.isFinite || width <= 0 { width = idealWidth }
+        let ratio = max(aspect, 0.01)
+        if let maxHeight, width / ratio > maxHeight {
+            return CGSize(width: (maxHeight * ratio).rounded(.down), height: maxHeight)
+        }
+        return CGSize(width: width, height: (width / ratio).rounded(.up))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        size(for: proposal)
+    }
+
+    #if DEBUG
+    /// Last size the graph was actually laid out at. Tests read it to prove the graph has room on screen.
+    nonisolated(unsafe) static var lastPlacedSize: CGSize = .zero
+    #endif
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        #if DEBUG
+        Self.lastPlacedSize = bounds.size
+        #endif
+        for subview in subviews {
+            subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
+        }
     }
 }

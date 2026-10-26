@@ -25,6 +25,7 @@ public struct PopoverView: View {
             }
         }
         .frame(width: 520)
+        .background { PopoverBackground() }
         .preferredColorScheme(model.appearance.colorScheme)
     }
 
@@ -148,6 +149,15 @@ public struct PopoverView: View {
                 addText = ""
             }
         }
+    }
+}
+
+/// Solid panel behind the popover content (white or GitHub dark, like the mockup). The system's popover
+/// glass depends on what's behind it and could stay dark under light text; a solid fill is always readable.
+struct PopoverBackground: View {
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        (scheme == .dark ? Color(hex: 0x161b22) : Color.white).ignoresSafeArea()
     }
 }
 
