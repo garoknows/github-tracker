@@ -10,3 +10,6 @@ OTHER_CODE_SIGN_FLAGS = --timestamp
 TRACKER_APP_GROUP = $(DEVELOPMENT_TEAM).io.github.garoknows.tracker
 TRACKER_APP_ENTITLEMENTS = App/TrackerForGitHub-Signed.entitlements
 TRACKER_WIDGET_ENTITLEMENTS = Widgets/TrackerWidgets-Signed.entitlements
+
+// Notarization rejects the debugger entitlement (get-task-allow); never add it to signed builds.
+CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO
