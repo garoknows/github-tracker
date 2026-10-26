@@ -1,0 +1,100 @@
+name: TrackerForGitHub
+options:
+  bundleIdPrefix: io.github.garoknows
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+packages:
+  TrackerKit:
+    path: Packages/TrackerKit
+
+targets:
+  TrackerForGitHub:
+    type: application
+    platform: macOS
+    sources:
+      - App/Sources
+      - App/Resources
+    dependencies:
+      - package: TrackerKit
+      - target: TrackerWidgets
+        embed: true
+        codeSign: true
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Tracker for GitHub
+        CFBundleName: Tracker for GitHub
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.developer-tools
+        NSHumanReadableCopyright: "© 2026 garoknows. MIT License. Not affiliated with GitHub, Inc."
+    entitlements:
+      path: App/TrackerForGitHub.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_NAME: Tracker for GitHub
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.garoknows.tracker
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+
+  TrackerWidgets:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Widgets/Sources
+    dependencies:
+      - package: TrackerKit
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Tracker for GitHub Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/TrackerWidgets.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_NAME: TrackerWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.garoknows.tracker.widgets
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+
+schemes:
+  TrackerForGitHub:
+    build:
+      targets:
+        TrackerForGitHub: all
+        TrackerWidgets: all
+    test:
+      targets:
+        - package: TrackerKit/TrackerKitTests
+    archive:
+      config: Release
