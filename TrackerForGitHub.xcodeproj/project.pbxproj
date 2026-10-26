@@ -367,7 +367,7 @@
 		65CABD34C7C45812557B89FD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Widgets/TrackerWidgets.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TRACKER_WIDGET_ENTITLEMENTS)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Widgets/Info.plist;
@@ -386,7 +386,7 @@
 		77D75322B2D73A1B31306DD8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Widgets/TrackerWidgets.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TRACKER_WIDGET_ENTITLEMENTS)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Widgets/Info.plist;
@@ -406,7 +406,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/TrackerForGitHub.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TRACKER_APP_ENTITLEMENTS)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -424,7 +424,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/TrackerForGitHub.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TRACKER_APP_ENTITLEMENTS)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;

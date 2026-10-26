@@ -20,11 +20,15 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 garoknows. MIT License. Not affiliated with GitHub, Inc.</string>
+	<key>TrackerAppGroup</key>
+	<string>$(TRACKER_APP_GROUP)</string>
 </dict>
 </plist>

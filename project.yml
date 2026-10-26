@@ -46,15 +46,13 @@ targets:
         LSUIElement: true
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: "© 2026 garoknows. MIT License. Not affiliated with GitHub, Inc."
-    entitlements:
-      path: App/TrackerForGitHub.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.network.client: true
+        ITSAppUsesNonExemptEncryption: false
+        TrackerAppGroup: $(TRACKER_APP_GROUP)
     settings:
       base:
         PRODUCT_NAME: Tracker for GitHub
         PRODUCT_BUNDLE_IDENTIFIER: io.github.garoknows.tracker
+        CODE_SIGN_ENTITLEMENTS: $(TRACKER_APP_ENTITLEMENTS)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
 
@@ -73,17 +71,14 @@ targets:
         CFBundleDisplayName: Tracker for GitHub Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        TrackerAppGroup: $(TRACKER_APP_GROUP)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    entitlements:
-      path: Widgets/TrackerWidgets.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.network.client: true
     settings:
       base:
         PRODUCT_NAME: TrackerWidgets
         PRODUCT_BUNDLE_IDENTIFIER: io.github.garoknows.tracker.widgets
+        CODE_SIGN_ENTITLEMENTS: $(TRACKER_WIDGET_ENTITLEMENTS)
         GENERATE_INFOPLIST_FILE: NO
         SKIP_INSTALL: YES
 

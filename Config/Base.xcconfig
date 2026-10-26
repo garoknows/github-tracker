@@ -6,4 +6,9 @@ CODE_SIGN_IDENTITY = -
 DEVELOPMENT_TEAM =
 OTHER_CODE_SIGN_FLAGS = --timestamp=none
 
+// Unsigned builds have no App Group, so the widget uses its own Edit Widget usernames.
+TRACKER_APP_GROUP =
+TRACKER_APP_ENTITLEMENTS = App/TrackerForGitHub.entitlements
+TRACKER_WIDGET_ENTITLEMENTS = Widgets/TrackerWidgets.entitlements
+
 #include? "Signing.xcconfig"

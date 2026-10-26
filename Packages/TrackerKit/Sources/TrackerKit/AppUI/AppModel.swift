@@ -2,6 +2,7 @@ import AppKit
 import Observation
 import ServiceManagement
 import SwiftUI
+import WidgetKit
 
 public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
     case strip, glyph
@@ -83,7 +84,7 @@ public final class AppModel {
     let prefs: Preferences
     @ObservationIgnored private var timer: Timer?
 
-    public init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = Preferences()) {
+    public init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = .forApp()) {
         self.loader = loader
         self.prefs = prefs
         favorites = prefs.favorites
@@ -137,7 +138,7 @@ public final class AppModel {
             return TrackerError.offline.errorDescription
         }
         favorites.append(login)
-        prefs.favorites = favorites
+        saveFavorites()
         index = favorites.count - 1
         await refresh(login)
         return nil
@@ -145,7 +146,7 @@ public final class AppModel {
 
     public func remove(_ login: String) {
         favorites.removeAll { $0 == login }
-        prefs.favorites = favorites
+        saveFavorites()
         results[login] = nil
         loader.cache.remove(login)
         index = min(index, max(0, favorites.count - 1))
@@ -155,22 +156,28 @@ public final class AppModel {
     public func moveUp(_ login: String) {
         guard let i = favorites.firstIndex(of: login), i > 0 else { return }
         favorites.swapAt(i, i - 1)
-        prefs.favorites = favorites
+        saveFavorites()
         onChange?()
     }
 
     public func move(fromOffsets source: IndexSet, toOffset destination: Int) {
         favorites.move(fromOffsets: source, toOffset: destination)
-        prefs.favorites = favorites
+        saveFavorites()
         onChange?()
     }
 
     public func makePrimary(_ login: String) {
         guard let i = favorites.firstIndex(of: login) else { return }
         favorites.insert(favorites.remove(at: i), at: 0)
-        prefs.favorites = favorites
+        saveFavorites()
         index = 0
         onChange?()
+    }
+
+    private func saveFavorites() {
+        prefs.favorites = favorites
+        // Widgets set to "Use my app favorites" read the shared list; tell them it changed.
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: Refresh

@@ -1,13 +1,12 @@
-// Copy to Config/Signing.xcconfig (gitignored) once you have an Apple Developer account ($99/yr).
-// Nothing in the code needs to change.
+// Copy to Config/Signing.xcconfig (gitignored) to build with your Apple Developer team.
+// Nothing in the code needs to change. Never commit the real file.
 
-CODE_SIGN_STYLE = Automatic
-CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Developer ID Application
 DEVELOPMENT_TEAM = YOURTEAMID
-OTHER_CODE_SIGN_FLAGS =
+OTHER_CODE_SIGN_FLAGS = --timestamp
 
-// Optional: an App Group lets the widget read the app's favorites and Keychain token.
-// 1. Add this to both entitlements files:
-//      com.apple.security.application-groups = ( $(TEAM_APP_GROUP) )
-// 2. Then enable the "Use my app favorites" widget option (planned).
-TEAM_APP_GROUP = YOURTEAMID.io.github.garoknows.tracker
+// App Group shared by the app and the widget, so widgets can use the app's favorites.
+TRACKER_APP_GROUP = $(DEVELOPMENT_TEAM).io.github.garoknows.tracker
+TRACKER_APP_ENTITLEMENTS = App/TrackerForGitHub-Signed.entitlements
+TRACKER_WIDGET_ENTITLEMENTS = Widgets/TrackerWidgets-Signed.entitlements

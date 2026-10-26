@@ -34,10 +34,13 @@ enum ThemeOption: String, AppEnum {
     var theme: ColorTheme { ColorTheme(rawValue: rawValue) ?? .green }
 }
 
-/// Self-contained setup: unsigned builds can't share the app's favorites, so each widget keeps its own list.
+/// Signed builds can follow the app's favorites through the App Group. Unsigned builds (and anyone who
+/// prefers a fixed list) use the up to 5 usernames typed in Edit Widget.
 struct ProfilesIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "GitHub profiles"
-    static let description = IntentDescription("Type up to 5 GitHub usernames. Use ◀ ▶ on the widget to flip between them.")
+    static let description = IntentDescription("Show your app favorites, or type up to 5 GitHub usernames. Use ◀ ▶ on the widget to flip between them.")
+
+    @Parameter(title: "Use my app favorites", default: true) var useAppFavorites: Bool
 
     @Parameter(title: "Username 1") var user1: String?
     @Parameter(title: "Username 2") var user2: String?
@@ -48,8 +51,17 @@ struct ProfilesIntent: WidgetConfigurationIntent {
 
     init() {}
 
-    /// Valid, de-duplicated usernames in the order typed.
+    /// The app's favorites when chosen and available, otherwise the typed usernames.
     var logins: [String] {
+        if useAppFavorites {
+            let shared = AppGroup.sharedFavorites()
+            if !shared.isEmpty { return shared }
+        }
+        return typedLogins
+    }
+
+    /// Valid, de-duplicated usernames in the order typed.
+    var typedLogins: [String] {
         var seen = Set<String>()
         return [user1, user2, user3, user4, user5].compactMap { raw in
             guard let raw, let login = try? Username.normalize(raw), seen.insert(login.lowercased()).inserted else { return nil }
