@@ -175,6 +175,11 @@ public final class AppModel {
 
     // MARK: Refresh
 
+    /// For screenshots and tests: show a result without touching the network.
+    func setResult(_ result: LoadResult, for login: String) {
+        results[login] = result
+    }
+
     public func refresh(_ login: String) async {
         refreshing.insert(login)
         let result = await loader.load(login)

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Unit tests (TrackerKit, no network)
+        run: swift test --package-path Packages/TrackerKit
+
+      - name: Check the Xcode project matches project.yml
+        continue-on-error: true
+        run: |
+          brew install xcodegen
+          xcodegen generate
+          git diff --stat --exit-code TrackerForGitHub.xcodeproj
+
+      - name: Build app and widgets (Release, ad-hoc signed)
+        run: |
+          xcodebuild -project TrackerForGitHub.xcodeproj -scheme TrackerForGitHub \
+            -configuration Release -destination "generic/platform=macOS" \
+            -derivedDataPath build.nosync/dd build
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -194,9 +194,9 @@ public struct ProfileCardView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Group {
                     if let o = snapshot.overview.overview {
-                        QuadrantView(overview: o, theme: theme).frame(width: 220, height: 200)
+                        QuadrantView(overview: o, theme: theme).frame(width: 250, height: 200)
                     } else {
-                        QuadrantPlaceholder(state: snapshot.overview, openSettings: openSettings).frame(width: 220)
+                        QuadrantPlaceholder(state: snapshot.overview, openSettings: openSettings).frame(width: 250, height: 170)
                     }
                 }
             }

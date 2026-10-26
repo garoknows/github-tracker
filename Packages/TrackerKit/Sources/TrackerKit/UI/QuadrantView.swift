@@ -16,7 +16,8 @@ public struct QuadrantView: View {
         Canvas { context, size in
             let s = min(size.width, size.height)
             let c = CGPoint(x: size.width / 2, y: size.height / 2)
-            let r = s * 0.23
+            // Leave room for the side labels ("Commits", "Issues") inside the canvas.
+            let r = max(20, min(s * 0.23, size.width / 2 - s * 0.06 * 6.5))
             let colors = theme.levels(scheme)
             let line = colors[3]
             let palette = Palette(scheme)
@@ -68,7 +69,7 @@ public struct QuadrantView: View {
             label(o.commits, "Commits", at: CGPoint(x: c.x - r - 6, y: c.y), anchor: .trailing)
             label(o.issues, "Issues", at: CGPoint(x: c.x + r + 6, y: c.y), anchor: .leading)
         }
-        .aspectRatio(1, contentMode: .fit)
+        .frame(minWidth: 160, minHeight: 120)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Activity overview: \(overview.commits)% commits, \(overview.issues)% issues, \(overview.pullRequests)% pull requests, \(overview.codeReview)% code review")
     }

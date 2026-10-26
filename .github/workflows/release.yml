@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    env:
+      APP_NAME: Tracker for GitHub
+      # Signing turns on automatically once these repository secrets exist (needs a paid Apple Developer account).
+      HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_TEAM_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version from tag
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Unit tests
+        run: swift test --package-path Packages/TrackerKit
+
+      - name: Import signing certificate (skipped without secrets)
+        if: env.HAS_SIGNING == 'true'
+        env:
+          P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$P12" | base64 --decode > cert.p12
+          security create-keychain -p ci build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p ci build.keychain
+          security import cert.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
+          rm cert.p12
+
+      - name: Build (Release)
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          SIGN_ARGS=()
+          if [ "$HAS_SIGNING" = "true" ]; then
+            SIGN_ARGS=(CODE_SIGN_IDENTITY="Developer ID Application" DEVELOPMENT_TEAM="$TEAM_ID" OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime")
+          fi
+          xcodebuild -project TrackerForGitHub.xcodeproj -scheme TrackerForGitHub \
+            -configuration Release -destination "generic/platform=macOS" \
+            -derivedDataPath build.nosync/dd MARKETING_VERSION="${{ steps.v.outputs.version }}" \
+            "${SIGN_ARGS[@]}" build
+          mkdir -p dist
+          ditto "build.nosync/dd/Build/Products/Release/$APP_NAME.app" "dist/$APP_NAME.app"
+
+      - name: Package DMG and zip
+        run: |
+          V="${{ steps.v.outputs.version }}"
+          mkdir -p dmgroot
+          ditto "dist/$APP_NAME.app" "dmgroot/$APP_NAME.app"
+          ln -s /Applications dmgroot/Applications
+          hdiutil create -volname "$APP_NAME $V" -srcfolder dmgroot -ov -format UDZO "dist/Tracker-for-GitHub-$V.dmg"
+          (cd dist && ditto -c -k --keepParent "$APP_NAME.app" "Tracker-for-GitHub-$V.zip")
+          shasum -a 256 dist/*.dmg dist/*.zip | sed 's# dist/# #' > dist/SHA256SUMS.txt
+          cat dist/SHA256SUMS.txt
+
+      - name: Notarize (skipped without secrets)
+        if: env.HAS_SIGNING == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG="dist/Tracker-for-GitHub-${{ steps.v.outputs.version }}.dmg"
+          xcrun notarytool submit "$DMG" --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" --team-id "$TEAM_ID" --wait
+          xcrun stapler staple "$DMG"
+
+      - name: Release notes
+        run: |
+          V="${{ steps.v.outputs.version }}"
+          awk -v v="$V" '$0 ~ "^## \\[?"v"\\]?" {f=1; next} /^## / && f {exit} f' CHANGELOG.md > notes.md
+          cat >> notes.md <<'NOTES'
+
+          ### Install
+          Download the `.dmg`, open it and drag **Tracker for GitHub** into Applications.
+          The first time, macOS asks you to approve it: **System Settings → Privacy & Security → Open Anyway**.
+          Step-by-step guide with pictures: [docs/INSTALL.md](https://github.com/garoknows/github-tracker/blob/main/docs/INSTALL.md).
+          NOTES
+          cat notes.md
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/SHA256SUMS.txt \
+            --title "Tracker for GitHub ${{ steps.v.outputs.version }}" --notes-file notes.md

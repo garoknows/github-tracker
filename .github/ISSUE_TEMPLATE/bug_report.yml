@@ -1,0 +1,37 @@
+name: Bug report
+description: Something isn't working right
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you see instead? Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Add the username …
+        2. Click …
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings → About
+      placeholder: "1.0.0"
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "macOS 15.1"
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options: [Menu bar popover, Widget, Settings, Install, Other]
+  - type: markdown
+    attributes:
+      value: "**Please don't paste tokens.** For security problems, use private reporting (see SECURITY.md)."

@@ -53,6 +53,7 @@ public struct WidgetCardView<Navigation: View>: View {
             VStack(alignment: .leading, spacing: 8) {
                 ProfileHeader(profile: snap.profile, avatarData: avatarData, avatarSize: 30)
                 ContributionGraphView(days: snap.calendar.lastWeeks(12), theme: theme, showLabels: false, interactive: false)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(s.total.formatted()).font(.system(size: 26, weight: .bold)).foregroundStyle(palette.fg)
@@ -60,6 +61,7 @@ public struct WidgetCardView<Navigation: View>: View {
                 }
                 .accessibilityElement(children: .combine)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         case .medium:
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top) {

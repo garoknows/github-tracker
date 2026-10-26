@@ -4,12 +4,11 @@ docs/design/inspiration/
 inspiration/
 
 # Build output
-build.nosync/
+build.nosync
 build/
 DerivedData/
 .build/
 .swiftpm/
-*.xcodeproj/
 *.xcworkspace/xcuserdata/
 xcuserdata/
 *.xcuserstate
