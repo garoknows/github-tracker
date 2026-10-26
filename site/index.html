@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>img{max-width:100%}[hidden]{display:none!important}body{margin:0}</style>
+<title>Tracker for GitHub</title>
+<meta name="description" content="See anyone's GitHub contribution graph and activity overview in your Mac menu bar and widgets. Free and open source.">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: GitHub-native product page. Sticky tab bar, two views (demo, install guide). Demo sits in a mock macOS desktop. */
+:root{
+  --bg:#f6f8fa; --surface:#ffffff; --surface-2:#f6f8fa; --fg:#1f2328; --muted:#59636e; --border:#d1d9e0;
+  --accent:#0969da; --accent-fg:#ffffff; --green:#1a7f37; --annot:#cf222e; --annot-soft:rgba(207,34,46,.08);
+  --code-bg:#f6f8fa; --shadow:0 8px 24px rgba(31,35,40,.12), 0 1px 3px rgba(31,35,40,.08);
+  --wall-a:#0f3d3e; --wall-b:#1d5c4f; --wall-c:#c9a227;
+  --m-bg:rgba(255,255,255,.86); --m-fg:#1f2328; --m-muted:#59636e; --m-border:rgba(31,35,40,.12); --m-surface:#ffffff; --m-bar:rgba(246,248,250,.72);
+  --display:"Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --body:-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --mono:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#010409; --surface:#0d1117; --surface-2:#151b23; --fg:#f0f6fc; --muted:#9198a1; --border:#3d444d;
+  --accent:#4493f8; --accent-fg:#0d1117; --green:#3fb950; --annot:#ff6b6b; --annot-soft:rgba(255,107,107,.1);
+  --code-bg:#151b23; --shadow:0 8px 24px rgba(1,4,9,.6), 0 1px 3px rgba(1,4,9,.5);
+  --m-bg:rgba(22,27,34,.88); --m-fg:#f0f6fc; --m-muted:#9198a1; --m-border:rgba(240,246,252,.1); --m-surface:#0d1117; --m-bar:rgba(1,4,9,.55);
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#010409; --surface:#0d1117; --surface-2:#151b23; --fg:#f0f6fc; --muted:#9198a1; --border:#3d444d;
+  --accent:#4493f8; --accent-fg:#0d1117; --green:#3fb950; --annot:#ff6b6b; --annot-soft:rgba(255,107,107,.1);
+  --code-bg:#151b23; --shadow:0 8px 24px rgba(1,4,9,.6), 0 1px 3px rgba(1,4,9,.5);
+  --m-bg:rgba(22,27,34,.88); --m-fg:#f0f6fc; --m-muted:#9198a1; --m-border:rgba(240,246,252,.1); --m-surface:#0d1117; --m-bar:rgba(1,4,9,.55);
+  color-scheme:dark }
+.mock[data-appearance="light"]{ --m-bg:rgba(255,255,255,.86); --m-fg:#1f2328; --m-muted:#59636e; --m-border:rgba(31,35,40,.12); --m-surface:#ffffff; --m-bar:rgba(246,248,250,.72); color-scheme:light }
+.mock[data-appearance="dark"]{ --m-bg:rgba(22,27,34,.88); --m-fg:#f0f6fc; --m-muted:#9198a1; --m-border:rgba(240,246,252,.1); --m-surface:#0d1117; --m-bar:rgba(1,4,9,.55); color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--fg); font-family:var(--body); font-size:15px; line-height:1.55}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:10; background:var(--surface)}
+a{color:var(--accent)}
+.wrap{max-width:1120px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
+header.top{position:sticky; top:env(safe-area-inset-top,0px); z-index:5; background:var(--surface); border-bottom:1px solid var(--border)}
+header.top .wrap{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding-block:12px}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:700; font-size:18px; letter-spacing:-.01em}
+.mark{display:grid; grid-template-columns:repeat(3,7px); gap:2px}
+.mark i{width:7px; height:7px; border-radius:2px; display:block}
+nav.tabs{display:flex; gap:4px; margin-left:auto; flex-wrap:wrap}
+nav.tabs a{color:var(--fg); text-decoration:none; padding:6px 12px; border-radius:6px; font-weight:500; font-size:14px}
+nav.tabs a:hover{background:var(--surface-2)}
+nav.tabs a[aria-current="page"]{background:var(--surface-2); box-shadow:inset 0 -2px 0 #fd8c73}
+nav.tabs a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+section.view{padding-block:32px 64px}
+h1,h2,h3{font-family:var(--display); text-wrap:balance; letter-spacing:-.015em; line-height:1.2}
+h1{font-size:clamp(26px,4vw,36px); margin:0 0 8px; font-weight:800}
+h2{font-size:22px; margin:40px 0 10px; font-weight:700}
+h3{font-size:17px; margin:24px 0 8px; font-weight:600}
+.lede{color:var(--muted); max-width:68ch; margin:0 0 20px; font-size:16px}
+.pill{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:999px; padding:2px 10px; font-size:12px; color:var(--muted); background:var(--surface)}
+.pill.sample{border-color:#d4a72c; color:#9a6700}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .pill.sample{color:#d29922; border-color:#9e6a03} }
+:root[data-theme="dark"] .pill.sample{color:#d29922; border-color:#9e6a03}
+
+/* ---------- Demo desktop ---------- */
+.desk-scroll{overflow-x:auto; border-radius:14px; box-shadow:var(--shadow)}
+.mock{position:relative; min-width:340px; border-radius:14px; overflow:hidden; color:var(--m-fg);
+  background:radial-gradient(120% 90% at 85% 10%, var(--wall-c) 0%, transparent 38%), linear-gradient(160deg, var(--wall-a), var(--wall-b) 60%, #0b2a2b);
+  padding-bottom:28px; font-family:var(--body)}
+.menubar{display:flex; align-items:center; gap:14px; height:30px; padding:0 12px; background:var(--m-bar); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); font-size:13px; color:var(--m-fg)}
+.menubar .apple{font-weight:700}
+.menubar .left span:not(.apple){opacity:.85}
+.menubar .left{display:flex; gap:14px; align-items:center; white-space:nowrap; overflow:hidden; min-width:0}
+.menubar .right{margin-left:auto; display:flex; align-items:center; gap:12px; white-space:nowrap}
+.mb-icon{display:flex; gap:2px; align-items:center; padding:4px 6px; border-radius:5px; border:0; background:transparent; cursor:pointer; color:inherit}
+.mb-icon.on, .mb-icon:hover{background:rgba(127,127,127,.25)}
+.mb-icon i{width:6px; height:11px; border-radius:1.5px; display:block}
+.mb-glyph{width:16px; height:16px}
+.desk{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:20px; padding:16px 16px 0}
+.desk-left{display:flex; flex-direction:column; gap:14px; align-items:flex-start; min-width:0}
+.desk-note{color:#e6edf3; font-size:12.5px; max-width:36ch; opacity:.9; background:rgba(0,0,0,.25); padding:8px 10px; border-radius:8px}
+.popover{width:min(520px, calc(100vw - 48px)); background:var(--m-bg); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); border:1px solid var(--m-border); border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.35); color:var(--m-fg); overflow:hidden; position:relative}
+.popover::before{content:""; position:absolute; top:-7px; right:42px; width:14px; height:14px; background:inherit; border-left:1px solid var(--m-border); border-top:1px solid var(--m-border); transform:rotate(45deg)}
+.pv-body{padding:14px 16px 10px; touch-action:pan-y; user-select:none}
+.track{display:flex; transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+@media (prefers-reduced-motion: reduce){ .track{transition:none} }
+.slide{flex:0 0 100%; min-width:0}
+.card-head{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+.avatar{width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-family:var(--display); color:#fff; flex:0 0 auto; font-size:15px}
+.card-head .who{min-width:0}
+.card-head .name{font-weight:600; font-size:15px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.card-head .handle{color:var(--m-muted); font-size:12.5px}
+.card-head .meta{margin-left:auto; text-align:right; font-size:11.5px; color:var(--m-muted)}
+.total{font-size:13px; margin:2px 0 6px}
+.total b{font-variant-numeric:tabular-nums}
+svg.graph{display:block; width:100%; height:auto}
+svg.graph text{fill:var(--m-muted); font:9px var(--body)}
+.legend{display:flex; justify-content:flex-end; align-items:center; gap:3px; font-size:11px; color:var(--m-muted); margin-top:4px}
+.legend i{width:10px; height:10px; border-radius:2px; display:block}
+.stats{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; margin-top:12px}
+.stat{background:var(--m-surface); border:1px solid var(--m-border); border-radius:8px; padding:7px 8px; min-width:0}
+.stat .k{font-size:10.5px; color:var(--m-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.stat .v{font-weight:700; font-size:15px; font-variant-numeric:tabular-nums; color:var(--green)}
+.stat .s{font-size:10px; color:var(--m-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.overview{display:grid; grid-template-columns:minmax(0,1fr) 230px; gap:12px; margin-top:12px; align-items:center}
+.overview .ov-text{font-size:12.5px; color:var(--m-muted)}
+.overview .ov-text b{color:var(--m-fg)}
+svg.quad text{fill:var(--m-muted); font:10px var(--body)}
+svg.quad text.pct{fill:var(--m-fg); font-weight:600}
+.quad-empty{height:150px; border:1px dashed var(--m-border); border-radius:10px; display:grid; place-items:center; text-align:center; padding:12px; font-size:12px; color:var(--m-muted)}
+.quad-empty button{margin-top:6px}
+.dots{display:flex; justify-content:center; gap:6px; padding:8px 0 2px}
+.dots button{width:7px; height:7px; border-radius:50%; border:0; padding:0; background:var(--m-muted); opacity:.35; cursor:pointer}
+.dots button[aria-current="true"]{opacity:1; background:var(--m-fg)}
+.pv-nav{width:26px; height:26px; border-radius:50%; border:1px solid var(--m-border); background:var(--m-surface); color:var(--m-fg); cursor:pointer; font-size:12px; display:grid; place-items:center; z-index:2}
+.dots{align-items:center}
+.pv-foot{display:flex; gap:4px; flex-wrap:wrap; padding:8px 10px; border-top:1px solid var(--m-border); font-size:12.5px}
+.btn{font:inherit; font-size:12.5px; border:1px solid var(--m-border); background:var(--m-surface); color:var(--m-fg); border-radius:6px; padding:4px 9px; cursor:pointer; display:inline-flex; gap:5px; align-items:center}
+.btn:hover{filter:brightness(.97)}
+.btn.primary{background:#1f883d; border-color:#1a7f37; color:#fff}
+.btn.ghost{border-color:transparent; background:transparent}
+.pv-foot .spacer{flex:1}
+.addrow{display:flex; gap:6px; padding:8px 10px; border-top:1px solid var(--m-border); flex-wrap:wrap}
+.addrow input{flex:1; min-width:160px; font:inherit; font-size:13px; padding:5px 8px; border-radius:6px; border:1px solid var(--m-border); background:var(--m-surface); color:var(--m-fg)}
+.err{color:#cf222e; font-size:12px; padding:0 10px 8px}
+.settings{padding:12px 16px 14px; font-size:13px}
+.settings h4{margin:12px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--m-muted); font-family:var(--body)}
+.settings h4:first-child{margin-top:0}
+.fav-list{display:flex; flex-direction:column; gap:4px}
+.fav{display:flex; align-items:center; gap:8px; padding:5px 6px; border:1px solid var(--m-border); border-radius:7px; background:var(--m-surface)}
+.fav .avatar{width:22px; height:22px; font-size:10px}
+.fav .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.fav .tag{font-size:10.5px; color:#1a7f37; border:1px solid #1a7f37; border-radius:999px; padding:0 6px}
+.mini{font:inherit; font-size:11px; padding:2px 6px; border:1px solid var(--m-border); border-radius:5px; background:transparent; color:var(--m-fg); cursor:pointer}
+.row{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:4px 0}
+.row label{min-width:120px; color:var(--m-muted)}
+.row input[type=password], .row select{font:inherit; font-size:12.5px; padding:4px 7px; border-radius:6px; border:1px solid var(--m-border); background:var(--m-surface); color:var(--m-fg)}
+.chips{display:flex; gap:6px; flex-wrap:wrap}
+.chip{display:inline-flex; gap:6px; align-items:center; border:1px solid var(--m-border); background:var(--m-surface); color:var(--m-fg); border-radius:999px; padding:3px 9px 3px 4px; cursor:pointer; font:inherit; font-size:12px}
+.chip[aria-pressed="true"]{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.chip .sw{display:flex; gap:1px}
+.chip .sw i{width:6px; height:12px; display:block; border-radius:1px}
+.note{font-size:11.5px; color:var(--m-muted); margin:4px 0 0}
+.tip{position:fixed; pointer-events:none; z-index:50; background:#1f2328; color:#fff; font-size:12px; padding:4px 8px; border-radius:6px; white-space:nowrap; transform:translate(-50%, -130%)}
+.switch{width:32px; height:18px; border-radius:999px; border:0; background:#8c959f; position:relative; cursor:pointer}
+.switch::after{content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition:left .15s}
+.switch[aria-checked="true"]{background:#1f883d}
+.switch[aria-checked="true"]::after{left:16px}
+
+/* widgets */
+.controls{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:18px 0 8px; font-size:13px}
+.controls .grp{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+.controls .lbl{color:var(--muted)}
+.seg{display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; background:var(--surface)}
+.seg button{font:inherit; font-size:12.5px; border:0; background:transparent; color:var(--fg); padding:4px 10px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface-2); font-weight:600; box-shadow:inset 0 -2px 0 var(--accent)}
+.widgets{display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; padding:20px 16px 4px}
+.wcol{display:flex; flex-direction:column; gap:6px; align-items:center}
+.wcap{font-size:11.5px; color:#e6edf3; opacity:.85}
+.widget{background:var(--m-bg); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); border-radius:22px; box-shadow:0 10px 30px rgba(0,0,0,.3); color:var(--m-fg); padding:14px; position:relative; overflow:hidden}
+.w-small{width:170px; height:170px}
+.w-medium{width:364px; height:170px; max-width:calc(100vw - 64px)}
+.w-large{width:364px; height:400px; max-width:calc(100vw - 64px)}
+.widget .whead{display:flex; gap:8px; align-items:center}
+.widget .whead .avatar{width:26px; height:26px; font-size:11px}
+.widget .whead .nm{font-weight:600; font-size:13px; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.widget .whead .hd{font-size:11px; color:var(--m-muted)}
+.widget .big{font-family:var(--display); font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1}
+.widget .sub{font-size:10.5px; color:var(--m-muted)}
+.warrows{position:absolute; top:10px; right:10px; display:flex; gap:4px}
+.warrows button{width:22px; height:22px; border-radius:50%; border:1px solid var(--m-border); background:var(--m-surface); color:var(--m-fg); font-size:10px; cursor:pointer; display:grid; place-items:center}
+.wstats{display:flex; gap:12px; font-size:11px; color:var(--m-muted); margin-top:6px; flex-wrap:wrap}
+.wstats b{color:var(--m-fg); font-variant-numeric:tabular-nums}
+.wdots{position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:4px}
+.wdots i{width:5px; height:5px; border-radius:50%; background:var(--m-muted); opacity:.35}
+.wdots i.on{opacity:1; background:var(--m-fg)}
+
+/* ---------- Guide ---------- */
+.toc{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 8px}
+.toc a{font-size:13px; text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:3px 10px; color:var(--fg); background:var(--surface)}
+.step{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:24px; align-items:start; padding:24px 0; border-top:1px solid var(--border)}
+.step:first-of-type{border-top:0}
+.step .txt{min-width:0}
+.step .num{display:inline-grid; place-items:center; width:28px; height:28px; border-radius:50%; background:var(--fg); color:var(--bg); font-weight:700; font-family:var(--display); font-size:14px; margin-right:8px}
+.step h3{display:flex; align-items:center; margin-top:0}
+.step ol, .step ul{padding-left:20px; margin:6px 0}
+.step li{margin:3px 0}
+.callout{border:1px solid var(--border); border-left-width:3px; border-radius:6px; padding:8px 12px; background:var(--surface); font-size:14px; margin:10px 0}
+.callout.warn{border-left-color:#d4a72c}
+.callout.tipc{border-left-color:var(--accent)}
+.screen{position:relative; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; font-size:12.5px; min-width:0}
+.screen .chrome{display:flex; gap:6px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface-2); font-size:11.5px; color:var(--muted)}
+.screen .chrome i{width:10px; height:10px; border-radius:50%; display:block}
+.screen .chrome .url{margin-left:8px; flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:2px 8px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.screen .pad{padding:14px}
+.hl{outline:3px solid var(--annot); outline-offset:3px; border-radius:6px; background:var(--annot-soft); position:relative}
+.mk{position:absolute; width:24px; height:24px; border-radius:50%; background:var(--annot); color:#fff; font-weight:800; font-size:13px; display:grid; place-items:center; box-shadow:0 0 0 3px var(--surface); z-index:3; font-family:var(--display)}
+.cap{font-size:12px; color:var(--muted); margin-top:6px}
+.cap b{color:var(--annot)}
+.fake-btn{display:inline-block; padding:4px 12px; border:1px solid var(--border); border-radius:6px; background:var(--surface-2); font-weight:600; font-size:12px}
+.fake-btn.blue{background:#0969da; color:#fff; border-color:#0969da}
+.fake-btn.green{background:#1f883d; color:#fff; border-color:#1a7f37}
+.asset{display:flex; justify-content:space-between; gap:8px; padding:7px 10px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11.5px}
+.asset:first-child{border-top:0}
+.asset span:last-child{color:var(--muted)}
+.dmg{display:flex; align-items:center; justify-content:space-around; gap:10px; padding:26px 10px; background:linear-gradient(180deg,var(--surface),var(--surface-2))}
+.appicon{width:64px; height:64px; border-radius:15px; background:#0d1117; display:grid; place-items:center; box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.appicon .g{display:grid; grid-template-columns:repeat(4,9px); gap:3px}
+.appicon .g i{width:9px; height:9px; border-radius:2px; display:block}
+.folder{width:66px; height:52px; border-radius:6px; background:#54aeff; position:relative}
+.folder::before{content:""; position:absolute; top:-7px; left:0; width:28px; height:10px; border-radius:4px 4px 0 0; background:#54aeff}
+.arrow{font-size:26px; color:var(--muted)}
+.dialog{max-width:280px; margin:16px auto; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow)}
+.dialog p{margin:6px 0; font-size:12px}
+.dialog .btns{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.prefs{display:grid; grid-template-columns:130px minmax(0,1fr); min-height:220px}
+.prefs .side{border-right:1px solid var(--border); padding:10px; background:var(--surface-2); display:flex; flex-direction:column; gap:4px; font-size:12px}
+.prefs .side span{padding:3px 6px; border-radius:5px}
+.prefs .side span.sel{background:var(--accent); color:#fff}
+.prefs .main{padding:12px; min-width:0}
+.nc{background:linear-gradient(160deg, var(--wall-a), var(--wall-b)); padding:14px; display:flex; flex-direction:column; gap:8px; align-items:flex-end}
+.nc .card{width:min(260px,100%); background:var(--m-bg); color:var(--m-fg); border-radius:14px; padding:10px; font-size:11.5px}
+pre{background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; overflow-x:auto; font-family:var(--mono); font-size:13px; margin:8px 0}
+code{font-family:var(--mono); font-size:.92em; background:var(--code-bg); border:1px solid var(--border); border-radius:4px; padding:0 4px}
+pre code{border:0; padding:0; background:none}
+.copyrow{position:relative}
+.copybtn{position:absolute; top:6px; right:6px; font:inherit; font-size:11.5px; border:1px solid var(--border); background:var(--surface); color:var(--fg); border-radius:5px; padding:2px 8px; cursor:pointer}
+details{border:1px solid var(--border); border-radius:8px; padding:8px 12px; background:var(--surface); margin:8px 0}
+summary{cursor:pointer; font-weight:600}
+
+.prd{max-width:820px}
+.prd table{border-collapse:collapse; width:100%; font-size:14px; margin:10px 0}
+.prd th, .prd td{border:1px solid var(--border); padding:6px 9px; text-align:left; vertical-align:top}
+.prd th{background:var(--surface-2)}
+.tablewrap{overflow-x:auto}
+.prd h1{font-size:30px}
+.prd hr{border:0; border-top:1px solid var(--border); margin:20px 0}
+
+.facts{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin:18px 0}
+.fact{border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:12px 14px; font-size:14px}
+.fact b{display:block; font-family:var(--display); font-size:15px; margin-bottom:2px}
+
+@media (max-width: 860px){
+  .desk{grid-template-columns:1fr}
+  .desk-left{order:2}
+  .step{grid-template-columns:1fr}
+  .overview{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(3, minmax(0,1fr))}
+}
+@media (max-width: 480px){ .stats{grid-template-columns:repeat(2, minmax(0,1fr))} .menubar .left span:nth-child(n+4){display:none} }
+@media print{
+  header.top, .copybtn, .controls, .toc{display:none !important}
+  body{background:#fff}
+  section.view{padding-block:0}
+  .step{break-inside:avoid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) !important; padding:16px 0}
+  .prd{max-width:none}
+  .screen{box-shadow:none}
+}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="mark" aria-hidden="true" id="brandMark"></span>Tracker for GitHub</div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#demo" data-view="demo">UI demo</a>
+      <a href="#install" data-view="install">Install guide</a>
+      <a href="https://github.com/garoknows/github-tracker">Source on GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ================= DEMO ================= -->
+<section class="view" id="view-demo">
+  <div class="wrap">
+    <h1>See anyone's GitHub year from your menu bar</h1>
+    <div class="hero-dl" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:4px 0 22px">
+      <a class="dl-btn" href="https://github.com/garoknows/github-tracker/releases/latest" style="display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-weight:600;padding:10px 18px;border-radius:8px;text-decoration:none">Download for Mac (free)</a>
+      <a href="#install" data-view="install" class="dl-alt" style="font-weight:500">How to install</a>
+      <a href="Tracker-for-GitHub-Install-Guide.pdf" style="font-weight:500">Printable guide (PDF)</a>
+      <a href="https://github.com/garoknows/github-tracker" style="font-weight:500">Source code</a>
+      <span style="color:var(--muted);font-size:13px">macOS 14 Sonoma or later · Apple silicon and Intel · MIT license</span>
+    </div>
+    <p class="lede">Below is a clickable demo of the app. Click the little graph in the menu bar, swipe or use the arrows to flip between favorites, add a username, and open Settings. Widgets below cycle with their ◀ ▶ buttons. <span class="pill sample">Sample data: the real app loads it live from GitHub</span></p>
+
+    <div class="controls">
+      <div class="grp"><span class="lbl">Mock appearance</span>
+        <div class="seg" id="appearanceSeg">
+          <button type="button" data-ap="auto" aria-pressed="true">System</button>
+          <button type="button" data-ap="light" aria-pressed="false">Light</button>
+          <button type="button" data-ap="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+      <div class="grp"><span class="lbl">Color theme</span><div class="chips" id="themeChipsTop"></div></div>
+    </div>
+
+    <div class="desk-scroll">
+      <div class="mock" id="mock" data-appearance="auto">
+        <div class="menubar">
+          <div class="left"><span class="apple"></span><span style="font-weight:600">Finder</span><span>File</span><span>Edit</span><span>View</span><span>Window</span></div>
+          <div class="right">
+            <button type="button" class="mb-icon on" id="mbIcon" aria-label="Tracker for GitHub, last 7 days" aria-expanded="true"></button>
+            <span aria-hidden="true">◐</span>
+            <span id="clock">Mon 9:41 AM</span>
+          </div>
+        </div>
+        <div class="desk">
+          <div class="desk-left">
+            <div class="desk-note">Menu bar icon: the last 7 days of your Primary profile. Today is the rightmost square.</div>
+            <div class="desk-note">Trackpad: two-finger swipe left or right on the card. Keyboard: ← and →. Mouse: drag the card, or click the dots.</div>
+          </div>
+          <div id="popWrap">
+            <div class="popover" id="popover" tabindex="0" aria-label="Tracker for GitHub popover"></div>
+          </div>
+        </div>
+
+        <div class="widgets" id="widgets" aria-label="Widgets"></div>
+      </div>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><b>Graph and stats need no login</b>Anyone's public green squares, totals and streaks load from GitHub's public profile data.</div>
+      <div class="fact"><b>Quadrant chart</b>Loads from the public profile when it's there. If not, a free read-only token in Settings unlocks it.</div>
+      <div class="fact"><b>Widgets use buttons, not swipes</b>macOS widgets can't be swiped, so Medium and Large widgets have ◀ ▶ buttons that flip favorites.</div>
+      <div class="fact"><b>Private by design</b>No account, no server, no tracking. The app talks only to github.com. Your token stays in the Keychain.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INSTALL GUIDE ================= -->
+<section class="view" id="view-install" hidden>
+  <div class="wrap">
+    <h1>Install and use Tracker for GitHub</h1>
+    <p class="lede">A plain-language guide for anyone. Download the app, approve it once, then add the people you want to follow. About 5 minutes. Works on macOS 14 Sonoma or later.</p>
+    <div class="toc">
+      <a href="#install">Download</a><a href="#install">First launch</a><a href="#install">Favorites</a><a href="#install">Widgets</a><a href="#install">Token (optional)</a><a href="#install">Build it yourself</a><a href="#install">FAQ</a>
+    </div>
+
+    <div class="step">
+      <div class="txt">
+        <h3><span class="num">1</span>Download the app</h3>
+        <ol>
+          <li>Go to <code>github.com/garoknows/github-tracker</code>.</li>
+          <li>On the right side, click <b>Releases</b>, then the newest version.</li>
+          <li>Under <b>Assets</b>, click the file ending in <code>.dmg</code>. It lands in your Downloads folder.</li>
+        </ol>
+      </div>
+      <figure style="margin:0">
+        <div class="screen">
+          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url">github.com/garoknows/github-tracker/releases</span></div>
+          <div class="pad">
+            <div style="font-family:var(--display);font-weight:700;font-size:16px">v1.0.0 <span class="pill" style="color:#1a7f37;border-color:#1a7f37">Latest</span></div>
+            <div style="color:var(--muted);font-size:12px;margin:4px 0 10px">First release: menu bar app and widgets.</div>
+            <div style="font-weight:600;margin-bottom:6px">Assets 4</div>
+            <div style="border:1px solid var(--border);border-radius:6px">
+              <div class="asset hl" style="outline-offset:-1px"><span>Tracker-for-GitHub-1.0.0.dmg</span><span>3.1 MB</span><span class="mk" style="right:-10px;top:-12px">1</span></div>
+              <div class="asset"><span>Tracker-for-GitHub-1.0.0.zip</span><span>2.9 MB</span></div>
+              <div class="asset"><span>Source code (zip)</span><span></span></div>
+              <div class="asset"><span>Source code (tar.gz)</span><span></span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>1</b> Click the .dmg file. Ignore "Source code" unless you plan to build it yourself.</figcaption>
+      </figure>
+    </div>
+
+    <div class="step">
+      <div class="txt">
+        <h3><span class="num">2</span>Drag it into Applications</h3>
+        <ol>
+          <li>Double-click the downloaded <code>.dmg</code>. A small window opens.</li>
+          <li>Drag the <b>Tracker for GitHub</b> icon onto the <b>Applications</b> folder.</li>
+          <li>Close the window, then drag the disk icon off your desktop (or right-click it and choose <b>Eject</b>).</li>
+        </ol>
+      </div>
+      <figure style="margin:0">
+        <div class="screen">
+          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url" style="background:none;border:0">Tracker for GitHub 1.0.0</span></div>
+          <div class="dmg">
+            <div style="text-align:center"><div class="appicon hl" id="dmgIcon"><div class="g" id="iconGrid"></div><span class="mk" style="left:-12px;top:-12px">2</span></div><div class="cap">Tracker for GitHub</div></div>
+            <div class="arrow" aria-hidden="true">→</div>
+            <div style="text-align:center"><div class="folder" style="margin:0 auto"></div><div class="cap">Applications</div></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>2</b> Drag the app icon onto the Applications folder.</figcaption>
+      </figure>
+    </div>
+
+    <div class="step">
+      <div class="txt">
+        <h3><span class="num">3</span>Approve it the first time</h3>
+        <p>Because this free app isn't signed by Apple yet, your Mac blocks the first launch. That's normal for indie open-source apps. You approve it once:</p>
+        <ol>
+          <li>Open <b>Applications</b> and double-click <b>Tracker for GitHub</b>. A warning appears. Click <b>Done</b>.</li>
+          <li>Open <b>System Settings</b> → <b>Privacy &amp; Security</b>.</li>
+          <li>Scroll down to <b>Security</b>. Next to "Tracker for GitHub was blocked," click <b>Open Anyway</b>.</li>
+          <li>Confirm with your password or Touch ID, then click <b>Open Anyway</b> again.</li>
+        </ol>
+        <div class="callout warn">On macOS 15 and later, the old right-click → Open trick no longer works. Use System Settings as shown.</div>
+      </div>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:12px">
+        <div class="screen"><div class="pad" style="background:var(--surface-2)">
+          <div class="dialog">
+            <div class="appicon" style="margin:0 auto;width:44px;height:44px;border-radius:11px"><div class="g" id="iconGrid2" style="grid-template-columns:repeat(4,6px);gap:2px"></div></div>
+            <p><b>"Tracker for GitHub" Not Opened</b></p>
+            <p style="color:var(--muted)">Apple could not verify "Tracker for GitHub" is free of malware…</p>
+            <div class="btns"><span class="fake-btn blue hl" style="position:relative">Done<span class="mk" style="right:-14px;top:-14px">3a</span></span><span class="fake-btn">Move to Trash</span></div>
+          </div>
+        </div></div>
+        <div class="screen">
+          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:8px">Privacy &amp; Security</span></div>
+          <div class="prefs">
+            <div class="side"><span>Wi-Fi</span><span>General</span><span>Appearance</span><span class="sel">Privacy &amp; Security</span><span>Desktop &amp; Dock</span></div>
+            <div class="main">
+              <div style="font-weight:700;margin-bottom:6px">Security</div>
+              <div style="color:var(--muted);font-size:12px">Allow applications from</div>
+              <div style="margin:4px 0 12px;font-size:12px">● App Store &amp; Known Developers</div>
+              <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:12px">
+                <span>"Tracker for GitHub" was blocked to protect your Mac.</span>
+                <span class="fake-btn hl" style="position:relative">Open Anyway<span class="mk" style="right:-14px;top:-14px">3b</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>3a</b> Click Done on the warning. <b>3b</b> Then click Open Anyway in Privacy &amp; Security.</figcaption>
+      </figure>
+    </div>
+
+    <div class="step">
+      <div class="txt">
+        <h3><span class="num">4</span>Add yourself and your favorites</h3>
+        <ol>
+          <li>Look at the top-right of your screen. Click the small graph icon in the menu bar.</li>
+          <li>Type a GitHub username, an @handle, or paste a profile link (like <code>github.com/garoknows</code>). Press <b>Return</b>.</li>
+          <li>Click <b>+ Add</b> to save more people, up to 10.</li>
+          <li>Flip between them with a two-finger swipe, the ← → keys, or the ◀ ▶ buttons.</li>
+        </ol>
+        <div class="callout tipc">Want it to start automatically? Open <b>Settings</b> in the popover and turn on <b>Launch at login</b>.</div>
+      </div>
+      <figure style="margin:0">
+        <div class="screen">
+          <div class="menubar" style="background:var(--surface-2);color:var(--fg)"><div class="left"><span class="apple"></span><span>Finder</span></div><div class="right"><span class="hl" style="display:inline-flex;gap:2px;padding:3px 5px;position:relative" id="guideMb"><span class="mk" style="left:-30px;top:-4px">4a</span></span><span>9:41 AM</span></div></div>
+          <div class="pad">
+            <div style="max-width:300px;margin-left:auto;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface)">
+              <div style="font-weight:700;font-family:var(--display)">Welcome to Tracker for GitHub</div>
+              <div style="color:var(--muted);font-size:12px;margin:4px 0 8px">Whose activity do you want to see?</div>
+              <div class="hl" style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--muted);position:relative">garoknows<span class="mk" style="right:-12px;top:-14px">4b</span></div>
+              <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center"><span class="fake-btn">+ Add</span><span class="fake-btn green">Show</span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>4a</b> The menu bar icon. <b>4b</b> Type a username and press Return.</figcaption>
+      </figure>
+    </div>
+
+    <div class="step">
+      <div class="txt">
+        <h3><span class="num">5</span>Put it on your desktop or in Notification Center</h3>
+        <ol>
+          <li>Click the <b>date and time</b> in the menu bar to open Notification Center. Scroll to the bottom and click <b>Edit Widgets</b>. (For the desktop: right-click the desktop → <b>Edit Widgets</b>.)</li>
+          <li>Search for <b>Tracker</b>. Pick Small, Medium or Large and drag it where you want.</li>
+          <li>Right-click the new widget → <b>Edit Widget</b> and type up to 5 usernames.</li>
+          <li>On Medium and Large widgets, click ◀ ▶ to flip between them.</li>
+        </ol>
+        <div class="callout">Widgets can't be swiped on a Mac. That's an Apple limit, which is why they have buttons.</div>
+      </div>
+      <figure style="margin:0">
+        <div class="screen">
+          <div class="nc">
+            <div class="card"><b>Tracker for GitHub</b><div style="color:var(--m-muted)">Medium widget</div><div id="ncMiniGraph" style="margin-top:6px"></div></div>
+            <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>Username 1</span><span class="hl" style="padding:2px 8px;border-radius:5px;position:relative;background:transparent">garoknows<span class="mk" style="left:-34px;top:-4px">5b</span></span></div>
+            <span class="fake-btn hl" style="position:relative;background:rgba(255,255,255,.85);color:#1f2328">Edit Widgets<span class="mk" style="left:-32px;top:-2px">5a</span></span>
+          </div>
+        </div>
+        <figcaption class="cap"><b>5a</b> Edit Widgets at the bottom of Notification Center. <b>5b</b> Edit Widget lets you type usernames.</figcaption>
+      </figure>
+    </div>
+
+    <div class="step">
+      <div class="txt">
+        <h3><span class="num">6</span>Optional: unlock the quadrant chart with a token</h3>
+        <p>The four-way Commits / Issues / Pull requests / Code review chart sometimes needs a free GitHub "token" (a read-only key). It can't change anything on your account.</p>
+        <ol>
+          <li>On github.com, click your picture → <b>Settings</b> → <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Fine-grained tokens</b>.</li>
+          <li>Click <b>Generate new token</b>. Name it "Tracker", pick an expiration, and leave every permission off.</li>
+          <li>Click <b>Generate token</b> and copy it. GitHub shows it only once.</li>
+          <li>In the app: <b>Settings</b> → <b>GitHub token</b> → paste → <b>Test token</b>.</li>
+        </ol>
+        <div class="callout tipc">The token is stored in your Mac's Keychain and sent only to GitHub. Delete it anytime on GitHub.</div>
+      </div>
+      <figure style="margin:0">
+        <div class="screen">
+          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url">github.com/settings/personal-access-tokens/new</span></div>
+          <div class="pad">
+            <div style="font-weight:700;font-family:var(--display);font-size:15px">New fine-grained personal access token</div>
+            <div style="margin:10px 0 4px;font-weight:600">Token name</div>
+            <div style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;max-width:220px">Tracker</div>
+            <div style="margin:10px 0 4px;font-weight:600">Permissions</div>
+            <div class="hl" style="padding:6px 8px;color:var(--muted);position:relative">No permissions added. Read-only public access only.<span class="mk" style="right:-12px;top:-14px">6a</span></div>
+            <div style="margin-top:14px"><span class="fake-btn green hl" style="position:relative">Generate token<span class="mk" style="right:-14px;top:-14px">6b</span></span></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>6a</b> Leave permissions empty. <b>6b</b> Generate, copy, and paste into the app's Settings.</figcaption>
+      </figure>
+    </div>
+
+    <h2>Build it yourself (for developers)</h2>
+    <p>Building from source skips the security warning because the app was made on your own Mac. You need Xcode (free in the Mac App Store). Run these one at a time in Terminal:</p>
+    <div class="copyrow"><pre><code>git clone https://github.com/garoknows/github-tracker.git</code></pre><button class="copybtn" type="button">Copy</button></div>
+    <div class="copyrow"><pre><code>cd github-tracker</code></pre><button class="copybtn" type="button">Copy</button></div>
+    <div class="copyrow"><pre><code>./scripts/install.sh</code></pre><button class="copybtn" type="button">Copy</button></div>
+    <p>The script builds the app, copies it into Applications and opens it.</p>
+
+    <h2>Update or remove</h2>
+    <ul>
+      <li><b>Update:</b> Settings → About → <b>Check for updates</b> opens the newest release. Download it and drag it into Applications, replacing the old one.</li>
+      <li><b>Remove:</b> click the menu bar icon → <b>Quit</b>, remove any widgets (Edit Widgets → ⊖), then drag the app from Applications to the Trash.</li>
+    </ul>
+
+    <h2>FAQ</h2>
+    <details><summary>Why does my Mac warn me about this app?</summary><p>Apple only fully trusts apps from developers who pay for a yearly Apple Developer membership. This project is free and doesn't have that yet. The source code is public so anyone can check what it does.</p></details>
+    <details><summary>Why is the quadrant chart missing for someone?</summary><p>GitHub only shows it for people who turned on "Activity overview" in their profile settings. If they did and it's still missing, add a token in Settings (step 6).</p></details>
+    <details><summary>Does it show private work?</summary><p>Only as anonymous green squares, and only if that person turned on "Private contributions" on their GitHub profile. It never shows private repo names or code.</p></details>
+    <details><summary>What data does it collect?</summary><p>None. There's no account, no server and no analytics. It only downloads public data from GitHub and keeps a small cache on your Mac so it works offline.</p></details>
+    <details><summary>Why can't I swipe the widget?</summary><p>macOS widgets only support clicks on buttons. Swiping works in the menu bar popover.</p></details>
+  </div>
+</section>
+
+</main>
+<footer style="border-top:1px solid var(--border);margin-top:40px;padding:22px 0 40px;color:var(--muted);font-size:13px">
+  <div class="wrap">Tracker for GitHub is free, open-source software (<a href="https://github.com/garoknows/github-tracker/blob/main/LICENSE">MIT</a>) by <a href="https://github.com/garoknows">@garoknows</a>.
+  It is an independent project, not affiliated with, endorsed by, or sponsored by GitHub, Inc. "GitHub" is a trademark of GitHub, Inc.
+  · <a href="https://github.com/garoknows/github-tracker/issues">Report an issue</a> · <a href="https://github.com/garoknows/github-tracker/blob/main/SECURITY.md">Privacy &amp; security</a></div>
+</footer>
+
+
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- color themes ---------- */
+var THEMES = {
+  green:    {name:"GitHub Green", light:["#eff2f5","#aceebb","#4ac26b","#2da44e","#116329"], dark:["#151b23","#033a16","#196c2e","#2ea043","#56d364"]},
+  halloween:{name:"Halloween",    light:["#eff2f5","#ffee4a","#ffc501","#fe9600","#03001c"], dark:["#151b23","#631c03","#bd561d","#fa7a18","#fddf68"]},
+  ocean:    {name:"Ocean",        light:["#eff2f5","#b6e3ff","#54aeff","#0969da","#0a3069"], dark:["#151b23","#0c2d6b","#1158c7","#388bfd","#79c0ff"]},
+  mono:     {name:"Mono",         light:["#eff2f5","#c8ccd1","#9198a1","#59636e","#1f2328"], dark:["#151b23","#3d444d","#656c76","#9198a1","#d1d7e0"]}
+};
+var state = { theme:"green", appearance:"auto", iconStyle:"strip", launchAtLogin:true, interval:"30", idx:0, view:"card", widgetIdx:{medium:0, large:0}, tokenSet:false };
+
+function pageIsDark(){
+  var t = document.documentElement.getAttribute("data-theme");
+  if (t === "dark") return true; if (t === "light") return false;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function mockIsDark(){ return state.appearance === "auto" ? pageIsDark() : state.appearance === "dark"; }
+function levels(darkOverride){ var d = darkOverride === undefined ? mockIsDark() : darkOverride; var t = THEMES[state.theme]; return d ? t.dark : t.light; }
+
+/* ---------- deterministic sample data ---------- */
+function rng(seed){ var h = 2166136261; for (var i=0;i<seed.length;i++){ h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); } return function(){ h += 0x6D2B79F5; var t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+var TODAY = new Date(); TODAY.setHours(12,0,0,0);
+function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function buildDays(fn){
+  var start = addDays(TODAY, -364); start = addDays(start, -start.getDay());
+  var days = []; for (var d = new Date(start); d <= TODAY; d = addDays(d,1)){ var ago = Math.round((TODAY - d)/86400000); days.push({date:new Date(d), count:Math.max(0, Math.round(fn(ago, d)))}); }
+  return days;
+}
+function garoDays(){
+  var r = rng("garoknows");
+  return buildDays(function(ago, d){
+    if (ago <= 20) return r() < .7 ? 1 + Math.floor(r()*7) : 0;
+    if (ago > 175 && ago < 215) return r() < .12 ? 1 + Math.floor(r()*3) : 0;
+    return r() < .008 ? 1 : 0;
+  });
+}
+function steadyDays(seed, rate, scale, weekendBias){
+  var r = rng(seed);
+  return buildDays(function(ago, d){ var wk = d.getDay()===0||d.getDay()===6; var p = rate * (wk ? weekendBias : 1); return r() < p ? 1 + Math.floor(Math.pow(r(),1.6)*scale) : 0; });
+}
+var AV = ["#1f883d","#8250df","#bf3989","#0969da","#bc4c00","#1b7c83","#cf222e","#6639ba"];
+function makeProfile(o){ o.days = o.days || steadyDays(o.user, .55, 9, .6); o.color = o.color || AV[Math.floor(rng(o.user)()*AV.length)]; o.stats = computeStats(o.days); return o; }
+function computeStats(days){
+  var total = 0, best = {count:0,date:null}, longest = 0, run = 0, ls = null, bestRun = {s:null,e:null};
+  var yearDays = days.filter(function(x){ return (TODAY - x.date) <= 364*86400000; });
+  yearDays.forEach(function(x){ total += x.count; if (x.count > best.count) best = x; if (x.count>0){ run++; if (run===1) ls = x.date; if (run>longest){ longest = run; bestRun = {s:ls, e:x.date}; } } else run = 0; });
+  var cur = 0, i = yearDays.length-1; if (yearDays[i] && yearDays[i].count===0) i--; for (; i>=0 && yearDays[i].count>0; i--) cur++;
+  var max = 0; days.forEach(function(x){ if (x.count>max) max = x.count; });
+  return {total:total, best:best, avg:(total/365), longest:longest, current:cur, max:max, bestRun:bestRun};
+}
+var profiles = [
+  makeProfile({user:"garoknows", name:"Garo", days:garoDays(), quad:{commits:49, issues:43, prs:8, review:0}, color:"#24292f", note:"Sample shaped like your profile"}),
+  makeProfile({user:"mira-builds", name:"Mira Patel", days:steadyDays("mira-builds", .82, 14, .35), quad:{commits:62, issues:14, prs:16, review:8}, note:"Fictional sample profile"}),
+  makeProfile({user:"nightshift-dev", name:"Theo Novak", days:steadyDays("nightshift-dev", .32, 6, 2.6), quad:null, quadReason:"off", note:"Fictional sample profile"})
+];
+var primary = 0;
+
+/* ---------- formatting ---------- */
+var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmt(d){ return MON[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(); }
+function fmtShort(d){ return MON[d.getMonth()]+" "+d.getDate(); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function lvl(c, max){ if (!c) return 0; var q = c / Math.max(max,1); return q <= .25 ? 1 : q <= .5 ? 2 : q <= .75 ? 3 : 4; }
+function initials(p){ var s = (p.name || p.user).split(/\s+/); return (s[0][0] + (s[1] ? s[1][0] : "")).toUpperCase(); }
+
+/* ---------- graph SVG ---------- */
+function graphSVG(p, weeks, opt){
+  opt = opt || {}; var cell = opt.cell || 10, gap = opt.gap || 3, step = cell + gap, L = levels();
+  var showLabels = opt.labels !== false, padL = showLabels ? 26 : 0, padT = showLabels ? 14 : 0;
+  var allCols = Math.ceil(p.days.length/7);
+  var days = p.days.slice(Math.max(0, allCols - weeks)*7);
+  var cols = Math.ceil(days.length/7);
+  var w = padL + cols*step - gap, h = padT + 7*step - gap;
+  var out = '<svg class="graph"'+(opt.h ? ' style="height:'+opt.h+'px;width:auto;max-width:100%"' : '')+' viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(p.stats.total)+' contributions in the last year">';
+  if (showLabels){
+    var lastM = -1;
+    for (var c=0;c<cols;c++){ var d0 = days[c*7]; if (!d0) continue; var m = d0.date.getMonth(); if (m !== lastM && d0.date.getDate() <= 7 && c < cols-1){ out += '<text x="'+(padL + c*step)+'" y="9">'+MON[m]+'</text>'; lastM = m; } else if (lastM === -1) lastM = m; }
+    out += '<text x="0" y="'+(padT+1*step+cell-1)+'">Mon</text><text x="0" y="'+(padT+3*step+cell-1)+'">Wed</text><text x="0" y="'+(padT+5*step+cell-1)+'">Fri</text>';
+  }
+  for (var i=0;i<days.length;i++){
+    var x = padL + Math.floor(i/7)*step, y = padT + (i%7)*step, dd = days[i], l = lvl(dd.count, p.stats.max);
+    out += '<rect x="'+x+'" y="'+y+'" width="'+cell+'" height="'+cell+'" rx="2" fill="'+L[l]+'" stroke="rgba(127,127,127,.12)" data-tip="'+(dd.count? dd.count+' contribution'+(dd.count>1?'s':'') : 'No contributions')+' on '+fmt(dd.date)+'"></rect>';
+  }
+  return out + '</svg>';
+}
+
+/* ---------- quadrant SVG ---------- */
+function quadSVG(q, size){
+  size = size || 200; var c = size/2, R = size*0.23, L = levels(), col = L[3], fill = L[2];
+  var pts = [[c, c - R*q.review/100],[c + R*q.issues/100, c],[c, c + R*q.prs/100],[c - R*q.commits/100, c]];
+  var poly = pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" ");
+  var s = '<svg class="quad" viewBox="0 0 '+size+' '+size+'" role="img" aria-label="Activity overview: '+q.commits+'% commits, '+q.issues+'% issues, '+q.prs+'% pull requests, '+q.review+'% code review">';
+  s += '<line x1="'+c+'" y1="'+(c-R)+'" x2="'+c+'" y2="'+(c+R)+'" stroke="'+col+'" stroke-width="2"/><line x1="'+(c-R)+'" y1="'+c+'" x2="'+(c+R)+'" y2="'+c+'" stroke="'+col+'" stroke-width="2"/>';
+  s += '<polygon points="'+poly+'" fill="'+fill+'" fill-opacity=".55" stroke="'+col+'" stroke-width="1.5" stroke-linejoin="round"/>';
+  pts.forEach(function(p, i){ var v = [q.review,q.issues,q.prs,q.commits][i]; if (v>0) s += '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3.2" fill="var(--m-surface)" stroke="'+col+'" stroke-width="2"/>'; });
+  function lab(x,y,anchor,pct,name){ return (pct ? '<text class="pct" x="'+x+'" y="'+y+'" text-anchor="'+anchor+'">'+pct+'%</text>' : '') + '<text x="'+x+'" y="'+(y + (pct?12:0))+'" text-anchor="'+anchor+'">'+name+'</text>'; }
+  s += lab(c, c-R-(q.review?20:8), "middle", q.review, "Code review");
+  s += lab(c, c+R+14, "middle", q.prs, "Pull requests");
+  s += lab(c-R-6, c-4, "end", q.commits, "Commits");
+  s += lab(c+R+6, c-4, "start", q.issues, "Issues");
+  return s + '</svg>';
+}
+/* GitHub places labels outside the cross; keep room inside the viewBox */
+function quadBlock(p, size){
+  if (p.quad) return '<div>'+quadSVG(p.quad, size)+'</div>';
+  var msg = p.quadReason === "off" ? "Activity overview is turned off on this profile." : "Add a free token in Settings to show this chart.";
+  return '<div class="quad-empty"><div>'+msg+(p.quadReason==="off" ? '' : '<br><button type="button" class="btn" data-act="settings">Open Settings</button>')+'</div></div>';
+}
+
+/* ---------- popover ---------- */
+function cardHTML(p){
+  var s = p.stats;
+  return '<div class="slide"><div class="card-head"><div class="avatar" style="background:'+p.color+'">'+esc(initials(p))+'</div><div class="who"><div class="name">'+esc(p.name || p.user)+'</div><div class="handle">@'+esc(p.user)+'</div></div><div class="meta">Updated 4 min ago<br><span class="pill sample" style="padding:0 6px;font-size:10px">'+esc(p.note||"Sample")+'</span></div></div>'+
+    '<div class="total"><b>'+s.total.toLocaleString()+'</b> contributions in the last year</div>'+
+    graphSVG(p, 53)+
+    '<div class="legend">Less '+levels().map(function(c){ return '<i style="background:'+c+'"></i>'; }).join("")+' More</div>'+
+    '<div class="stats">'+
+      stat("Total", s.total.toLocaleString(), "last 12 months")+
+      stat("Best day", s.best.count, s.best.date ? fmtShort(s.best.date) : "–")+
+      stat("Average", s.avg.toFixed(2), "per day")+
+      stat("Current streak", s.current+" day"+(s.current===1?"":"s"), s.current ? "ends today" : "no activity today")+
+      stat("Longest streak", s.longest+" day"+(s.longest===1?"":"s"), s.bestRun.s ? fmtShort(s.bestRun.s)+" – "+fmtShort(s.bestRun.e) : "–")+
+    '</div>'+
+    '<div class="overview"><div class="ov-text"><b>Activity overview</b><br>'+(p.quad ? 'Share of '+esc(p.name||p.user)+"'s activity this year across commits, issues, pull requests and code review." : 'This chart appears when GitHub shares it for this profile.')+'</div>'+quadBlock(p, 200)+'</div></div>';
+}
+function stat(k,v,s){ return '<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>'; }
+
+var pop = document.getElementById("popover");
+function renderPopover(){
+  if (state.view === "settings") return renderSettings();
+  var html = '';
+  html += '<div class="pv-body" id="pvBody"><div style="overflow:hidden"><div class="track" id="track" style="transform:translateX('+(-state.idx*100)+'%)">'+profiles.map(cardHTML).join("")+'</div></div>';
+  html += '<div class="dots" role="tablist"><button type="button" class="pv-nav" data-act="prev" aria-label="Previous favorite" style="width:24px;height:24px;opacity:1;background:var(--m-surface);border:1px solid var(--m-border);border-radius:50%;margin-right:6px;color:var(--m-fg);font-size:10px">◀</button>'+profiles.map(function(p,i){ return '<button type="button" role="tab" aria-label="'+esc(p.user)+'" aria-current="'+(i===state.idx)+'" data-go="'+i+'"></button>'; }).join("")+'<button type="button" class="pv-nav" data-act="next" aria-label="Next favorite" style="width:24px;height:24px;opacity:1;background:var(--m-surface);border:1px solid var(--m-border);border-radius:50%;margin-left:6px;color:var(--m-fg);font-size:10px">▶</button></div></div>';
+  if (state.adding) html += '<form class="addrow" id="addForm"><input id="addInput" autocomplete="off" placeholder="Username, @handle, or github.com/name" aria-label="GitHub username"><button class="btn primary" type="submit">Add</button><button class="btn" type="button" data-act="cancelAdd">Cancel</button></form>'+(state.addErr ? '<div class="err" role="alert">'+esc(state.addErr)+'</div>' : '');
+  html += '<div class="pv-foot"><button type="button" class="btn" data-act="add">＋ Add</button><button type="button" class="btn" data-act="refresh">↻ Refresh</button><button type="button" class="btn" data-act="open">Open on GitHub ↗</button><span class="spacer"></span><button type="button" class="btn ghost" data-act="settings">Settings</button><button type="button" class="btn ghost" data-act="quit">Quit</button></div>';
+  pop.innerHTML = html;
+  var inp = document.getElementById("addInput"); if (inp) inp.focus();
+}
+function renderSettings(){
+  var L = levels();
+  var html = '<div class="settings"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><b style="font-family:var(--display);font-size:15px">Settings</b><button type="button" class="btn" data-act="back">Done</button></div>';
+  html += '<h4>Favorites</h4><div class="fav-list">'+profiles.map(function(p,i){ return '<div class="fav"><div class="avatar" style="background:'+p.color+'">'+esc(initials(p))+'</div><span class="nm">'+esc(p.name||p.user)+' <span style="color:var(--m-muted)">@'+esc(p.user)+'</span></span>'+(i===primary ? '<span class="tag">Primary</span>' : '<button type="button" class="mini" data-primary="'+i+'">Make primary</button>')+'<button type="button" class="mini" data-up="'+i+'" aria-label="Move up"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="mini" data-del="'+i+'" aria-label="Remove '+esc(p.user)+'"'+(profiles.length<2?' disabled':'')+'>✕</button></div>'; }).join("")+'</div><p class="note">Up to 10 favorites. The Primary profile drives the menu bar icon.</p>';
+  html += '<h4>GitHub token (optional)</h4><div class="row"><label for="tok">Read-only token</label><input id="tok" type="password" placeholder="github_pat_…" value="'+(state.tokenSet?"github_pat_xxxxxxxxxxxx":"")+'"><button type="button" class="btn" data-act="testtoken">Test token</button></div><p class="note" id="tokNote">'+(state.tokenSet ? "Token saved in Keychain. Quadrant charts will load for every profile that has Activity overview on." : "Only needed when a profile's quadrant chart doesn't load publicly. Stored in your Mac's Keychain, sent only to GitHub.")+'</p>';
+  html += '<h4>General</h4><div class="row"><label for="intv">Refresh every</label><select id="intv">'+[["15","15 minutes"],["30","30 minutes"],["60","1 hour"],["180","3 hours"]].map(function(o){ return '<option value="'+o[0]+'"'+(state.interval===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join("")+'</select></div>';
+  html += '<div class="row"><label id="lalbl">Launch at login</label><button type="button" class="switch" role="switch" aria-labelledby="lalbl" aria-checked="'+state.launchAtLogin+'" data-act="login"></button></div>';
+  html += '<div class="row"><label>Menu bar icon</label><div class="seg" style="border-color:var(--m-border);background:var(--m-surface)"><button type="button" data-icon="strip" aria-pressed="'+(state.iconStyle==="strip")+'" style="color:var(--m-fg)">7-day strip</button><button type="button" data-icon="glyph" aria-pressed="'+(state.iconStyle==="glyph")+'" style="color:var(--m-fg)">Simple icon</button></div></div>';
+  html += '<h4>Color theme</h4><div class="chips">'+themeChips()+'</div>';
+  html += '<h4>About</h4><p class="note" style="margin:0">Version 1.0.0 · MIT license · github.com/garoknows/github-tracker · <button type="button" class="mini" data-act="updates">Check for updates</button></p></div>';
+  pop.innerHTML = html;
+}
+function themeChips(){ return Object.keys(THEMES).map(function(k){ var L = levels(); var t = mockIsDark() ? THEMES[k].dark : THEMES[k].light; return '<button type="button" class="chip" data-theme-pick="'+k+'" aria-pressed="'+(state.theme===k)+'"><span class="sw">'+t.slice(1).map(function(c){ return '<i style="background:'+c+'"></i>'; }).join("")+'</span>'+THEMES[k].name+'</button>'; }).join(""); }
+
+/* ---------- menu bar icon ---------- */
+function renderIcon(){
+  var el = document.getElementById("mbIcon"), p = profiles[primary], L = levels();
+  if (state.iconStyle === "glyph"){ el.innerHTML = '<svg class="mb-glyph" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/><rect x="6" y="1" width="4" height="4" rx="1" fill="currentColor"/><rect x="11" y="1" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="6" width="4" height="4" rx="1" fill="currentColor"/><rect x="6" y="6" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/><rect x="11" y="6" width="4" height="4" rx="1" fill="currentColor"/><rect x="1" y="11" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="6" y="11" width="4" height="4" rx="1" fill="currentColor"/><rect x="11" y="11" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/></svg>'; return; }
+  el.innerHTML = p.days.slice(-7).map(function(d){ return '<i style="background:'+(d.count ? L[lvl(d.count,p.stats.max)] : "rgba(127,127,127,.35)")+'"></i>'; }).join("");
+}
+function brandMarks(){
+  var L = THEMES.green.light, seq = [1,3,2,4,2,0,3,1,4];
+  document.getElementById("brandMark").innerHTML = seq.map(function(l){ return '<i style="background:'+L[l]+'"></i>'; }).join("");
+  ["iconGrid","iconGrid2"].forEach(function(id){ var g = document.getElementById(id); if (g) g.innerHTML = [0,1,2,1,2,3,1,4,1,3,4,2,3,4,2,4].map(function(l){ return '<i style="background:'+THEMES.green.dark[l]+'"></i>'; }).join(""); });
+  var gm = document.getElementById("guideMb"); if (gm) gm.insertAdjacentHTML("afterbegin", profiles[0].days.slice(-7).map(function(d){ return '<i style="display:block;width:5px;height:10px;border-radius:1px;background:'+(d.count ? L[lvl(d.count,profiles[0].stats.max)] : "#d1d9e0")+'"></i>'; }).join(""));
+  var nc = document.getElementById("ncMiniGraph"); if (nc) nc.innerHTML = graphSVG(profiles[0], 20, {labels:false, cell:8, gap:2});
+}
+
+/* ---------- widgets ---------- */
+function renderWidgets(){
+  var p0 = profiles[primary], pm = profiles[state.widgetIdx.medium % profiles.length], pl = profiles[state.widgetIdx.large % profiles.length];
+  function head(p){ return '<div class="whead"><div class="avatar" style="background:'+p.color+'">'+esc(initials(p))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name||p.user)+'</div><div class="hd">@'+esc(p.user)+'</div></div></div>'; }
+  function arrows(k){ return '<div class="warrows"><button type="button" data-w="'+k+'" data-dir="-1" aria-label="Previous">◀</button><button type="button" data-w="'+k+'" data-dir="1" aria-label="Next">▶</button></div>'; }
+  function wdots(i){ return '<div class="wdots">'+profiles.map(function(_,j){ return '<i class="'+(j===i?"on":"")+'"></i>'; }).join("")+'</div>'; }
+  var small = '<div class="widget w-small">'+head(p0)+'<div style="margin-top:8px">'+graphSVG(p0, 12, {labels:false, cell:9, gap:2.4, h:82})+'</div><div style="margin-top:6px;display:flex;align-items:baseline;gap:6px"><span class="big">'+p0.stats.total+'</span><span class="sub">this year</span></div></div>';
+  var mi = state.widgetIdx.medium % profiles.length, li = state.widgetIdx.large % profiles.length;
+  var medium = '<div class="widget w-medium">'+head(pm)+arrows("medium")+'<div style="margin-top:8px">'+graphSVG(pm, 20, {labels:false, cell:12, gap:3, h:80})+'</div><div class="wstats"><span><b>'+pm.stats.total+'</b> this year</span><span><b>'+pm.stats.current+'</b> day streak</span><span>Best <b>'+pm.stats.best.count+'</b></span></div>'+wdots(mi)+'</div>';
+  var large = '<div class="widget w-large">'+head(pl)+arrows("large")+'<div style="margin-top:10px">'+graphSVG(pl, 26, {labels:true, cell:9.5, gap:2.6, h:118})+'</div><div class="wstats"><span><b>'+pl.stats.total+'</b> this year</span><span><b>'+pl.stats.current+'</b> current</span><span><b>'+pl.stats.longest+'</b> longest</span></div><div style="margin-top:4px;height:172px">'+(pl.quad ? '<div style="width:184px;margin:0 auto">'+quadSVG(pl.quad, 184)+'</div>' : '<div class="quad-empty" style="height:150px;margin-top:8px">Activity overview is off for this profile.</div>')+'</div>'+wdots(li)+'</div>';
+  document.getElementById("widgets").innerHTML =
+    '<div class="wcol">'+small+'<span class="wcap">Small</span></div>'+
+    '<div class="wcol">'+medium+'<span class="wcap">Medium · ◀ ▶ flips favorites</span></div>'+
+    '<div class="wcol">'+large+'<span class="wcap">Large · graph + quadrant</span></div>';
+}
+
+/* ---------- render all ---------- */
+function renderAll(){ renderPopover(); renderIcon(); renderWidgets(); document.getElementById("themeChipsTop").innerHTML = themeChips(); }
+
+function go(i){ state.idx = (i + profiles.length) % profiles.length; var t = document.getElementById("track"); if (!t){ renderPopover(); return; } t.style.transform = "translateX("+(-state.idx*100)+"%)"; pop.querySelectorAll(".dots button[data-go]").forEach(function(b,j){ b.setAttribute("aria-current", j===state.idx); }); }
+
+function normalize(v){
+  v = v.trim().replace(/^@/, "");
+  var m = v.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([^\/?#\s]+)/i); if (m) v = m[1];
+  return v;
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  var act = b.getAttribute("data-act");
+  if (b.id === "mbIcon"){ var w = document.getElementById("popWrap"); w.hidden = !w.hidden; b.classList.toggle("on", !w.hidden); b.setAttribute("aria-expanded", !w.hidden); return; }
+  if (b.hasAttribute("data-go")){ go(+b.getAttribute("data-go")); return; }
+  if (b.hasAttribute("data-w")){ var k = b.getAttribute("data-w"); state.widgetIdx[k] = (state.widgetIdx[k] + (+b.getAttribute("data-dir")) + profiles.length) % profiles.length; renderWidgets(); return; }
+  if (b.hasAttribute("data-theme-pick")){ state.theme = b.getAttribute("data-theme-pick"); renderAll(); return; }
+  if (b.hasAttribute("data-icon")){ state.iconStyle = b.getAttribute("data-icon"); renderIcon(); renderSettings(); return; }
+  if (b.hasAttribute("data-primary")){ primary = +b.getAttribute("data-primary"); renderAll(); return; }
+  if (b.hasAttribute("data-up")){ var i = +b.getAttribute("data-up"); if (i>0){ var x = profiles.splice(i,1)[0]; profiles.splice(i-1,0,x); if (primary===i) primary=i-1; else if (primary===i-1) primary=i; } renderAll(); return; }
+  if (b.hasAttribute("data-del")){ var j = +b.getAttribute("data-del"); if (profiles.length>1){ profiles.splice(j,1); if (primary>=profiles.length || primary===j) primary=0; state.idx=0; } renderAll(); return; }
+  if (b.hasAttribute("data-ap")){ state.appearance = b.getAttribute("data-ap"); document.getElementById("mock").setAttribute("data-appearance", state.appearance); document.querySelectorAll("#appearanceSeg button").forEach(function(x){ x.setAttribute("aria-pressed", x===b); }); renderAll(); return; }
+  switch(act){
+    case "prev": go(state.idx-1); break;
+    case "next": go(state.idx+1); break;
+    case "add": state.adding = true; state.addErr = ""; renderPopover(); break;
+    case "cancelAdd": state.adding = false; renderPopover(); break;
+    case "settings": state.view = "settings"; renderPopover(); break;
+    case "back": state.view = "card"; renderPopover(); break;
+    case "refresh": var m = pop.querySelector(".slide:nth-child("+(state.idx+1)+") .meta"); if (m) m.firstChild.textContent = "Updated just now"; break;
+    case "open": b.textContent = "Opens github.com/"+profiles[state.idx].user; break;
+    case "quit": b.textContent = "Quit (disabled in demo)"; break;
+    case "login": state.launchAtLogin = !state.launchAtLogin; b.setAttribute("aria-checked", state.launchAtLogin); break;
+    case "updates": b.textContent = "Opens the latest release"; break;
+    case "testtoken": var v = document.getElementById("tok").value.trim(); state.tokenSet = v.length > 0; document.getElementById("tokNote").textContent = state.tokenSet ? "In the real app this checks the token with GitHub, then saves it to Keychain." : "Paste a token first."; break;
+  }
+});
+document.addEventListener("submit", function(e){
+  if (e.target.id !== "addForm") return; e.preventDefault();
+  var u = normalize(document.getElementById("addInput").value);
+  if (!u){ state.addErr = "Type a username, an @handle, or a profile link."; renderPopover(); return; }
+  if (!/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(u)){ state.addErr = "“"+u+"” isn't a valid GitHub username. Use letters, numbers and single hyphens."; renderPopover(); return; }
+  if (profiles.some(function(p){ return p.user.toLowerCase()===u.toLowerCase(); })){ state.addErr = "@"+u+" is already a favorite."; renderPopover(); return; }
+  if (profiles.length >= 10){ state.addErr = "You can keep up to 10 favorites. Remove one in Settings first."; renderPopover(); return; }
+  var r = rng(u)();
+  profiles.push(makeProfile({user:u, name:u, days:steadyDays(u, .2 + r*.6, 4 + Math.floor(r*10), .5 + r), quad: r > .3 ? (function(){ var a=10+Math.floor(r*60), b2=Math.floor((100-a)*.4), c2=Math.floor((100-a)*.4); return {commits:a, issues:b2, prs:c2, review:100-a-b2-c2}; })() : null, quadReason: r > .3 ? null : "token", note:"Demo data for @"+u}));
+  state.adding = false; state.addErr = ""; state.idx = profiles.length-1; renderAll();
+});
+document.addEventListener("change", function(e){ if (e.target.id === "intv") state.interval = e.target.value; });
+
+/* swipe: drag, trackpad wheel, keyboard */
+var drag = null;
+pop.addEventListener("pointerdown", function(e){ if (state.view !== "card" || e.target.closest("button,input")) return; drag = {x:e.clientX, dx:0}; });
+window.addEventListener("pointermove", function(e){ if (!drag) return; drag.dx = e.clientX - drag.x; var t = document.getElementById("track"); if (t){ t.style.transition = "none"; t.style.transform = "translateX(calc("+(-state.idx*100)+"% + "+drag.dx+"px))"; } });
+window.addEventListener("pointerup", function(){ if (!drag) return; var t = document.getElementById("track"); if (t) t.style.transition = ""; if (drag.dx < -50) go(state.idx+1); else if (drag.dx > 50) go(state.idx-1); else go(state.idx); drag = null; });
+var wheelAcc = 0, wheelLock = false;
+pop.addEventListener("wheel", function(e){ if (state.view !== "card" || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; e.preventDefault(); if (wheelLock) return; wheelAcc += e.deltaX; if (Math.abs(wheelAcc) > 60){ go(state.idx + (wheelAcc>0?1:-1)); wheelAcc = 0; wheelLock = true; setTimeout(function(){ wheelLock = false; }, 450); } }, {passive:false});
+pop.addEventListener("keydown", function(e){ if (state.view !== "card" || e.target.tagName === "INPUT") return; if (e.key === "ArrowRight"){ go(state.idx+1); e.preventDefault(); } if (e.key === "ArrowLeft"){ go(state.idx-1); e.preventDefault(); } });
+
+/* tooltips */
+var tip = document.getElementById("tip");
+document.addEventListener("pointerover", function(e){ var r = e.target.closest && e.target.closest("rect[data-tip]"); if (!r){ tip.hidden = true; return; } var bb = r.getBoundingClientRect(); tip.textContent = r.getAttribute("data-tip"); tip.style.left = (bb.left + bb.width/2)+"px"; tip.style.top = bb.top+"px"; tip.hidden = false; });
+
+/* copy buttons */
+document.querySelectorAll(".copybtn").forEach(function(btn){ btn.addEventListener("click", function(){ var code = btn.parentNode.querySelector("code"); var t = code.textContent; var done = function(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy"; }, 1500); }; try { navigator.clipboard.writeText(t).then(done, function(){ selectNode(code); }); } catch(_){ selectNode(code); } }); });
+function selectNode(n){ var r = document.createRange(); r.selectNodeContents(n); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+/* tabs */
+var views = ["demo","install"];
+function show(v){ if (views.indexOf(v) < 0) v = "demo"; views.forEach(function(x){ document.getElementById("view-"+x).hidden = x !== v; }); document.querySelectorAll("nav.tabs a").forEach(function(a){ if (a.getAttribute("data-view")===v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); }); }
+document.querySelectorAll("nav.tabs a[data-view]").forEach(function(a){ a.addEventListener("click", function(e){ e.preventDefault(); show(a.getAttribute("data-view")); window.scrollTo(0,0); try{ history.replaceState(null,"","#"+a.getAttribute("data-view")); }catch(_){} }); });
+document.querySelectorAll(".toc a").forEach(function(a){ a.addEventListener("click", function(e){ e.preventDefault(); var label = a.textContent.trim(); var hs = Array.prototype.slice.call(document.querySelectorAll("#view-install h3, #view-install h2")); var map = {"Download":"Download the app","First launch":"Approve it","Favorites":"Add yourself","Widgets":"Put it on","Token (optional)":"Optional: unlock","Build it yourself":"Build it yourself","FAQ":"FAQ"}; var h = hs.filter(function(x){ return x.textContent.indexOf(map[label]) >= 0; })[0]; if (h) h.scrollIntoView({behavior:"smooth", block:"start"}); }); });
+show((location.hash || "#demo").slice(1));
+window.addEventListener("hashchange", function(){ show((location.hash || "#demo").slice(1)); });
+
+/* clock */
+var now = new Date(); var hr = now.getHours(), mn = now.getMinutes(); document.getElementById("clock").textContent = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][now.getDay()]+" "+((hr%12)||12)+":"+(mn<10?"0":"")+mn+" "+(hr<12?"AM":"PM");
+
+/* theme changes from viewer */
+try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll); } catch(_){}
+new MutationObserver(renderAll).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+
+brandMarks(); renderAll();
+})();
+</script>
+</body></html>
