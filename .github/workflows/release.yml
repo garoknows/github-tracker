@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Dry run: build, sign, notarize and check the DMG with Gatekeeper, but publish nothing.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to stamp into the dry-run build
+        default: "0.0.0"
 
 permissions:
   contents: write
@@ -16,13 +22,17 @@ jobs:
       # Signing and notarizing turn on automatically when these repository secrets exist.
       # Without them the release is ad-hoc signed (first launch needs "Open Anyway").
       HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_TEAM_ID != '' }}
-      HAS_NOTARY: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_P8 != '' }}
+      HAS_NOTARY: ${{ secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER_ID != '' && secrets.APPLE_API_KEY_P8 != '' }}
     steps:
       - uses: actions/checkout@v5
 
       - name: Version from tag
         id: v
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then V="$INPUT_VERSION"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
 
       - name: Unit tests
         run: swift test --package-path Packages/TrackerKit --skip Screenshot --skip GraphLayoutTests/livePopover
@@ -62,7 +72,7 @@ jobs:
       - name: Write App Store Connect API key
         if: env.HAS_NOTARY == 'true'
         env:
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         run: |
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
           chmod 600 "$RUNNER_TEMP/AuthKey.p8"
@@ -70,8 +80,8 @@ jobs:
       - name: Notarize and staple the app
         if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
         env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           ditto -c -k --keepParent "dist/$APP_NAME.app" "$RUNNER_TEMP/notarize-app.zip"
           xcrun notarytool submit "$RUNNER_TEMP/notarize-app.zip" \
@@ -94,8 +104,8 @@ jobs:
       - name: Notarize and staple the DMG
         if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
         env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           DMG="dist/Tracker-for-GitHub-${{ steps.v.outputs.version }}.dmg"
           xcrun notarytool submit "$DMG" \
@@ -133,6 +143,7 @@ jobs:
           cat notes.md
 
       - name: Publish GitHub Release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -140,7 +151,7 @@ jobs:
             --title "Tracker for GitHub ${{ steps.v.outputs.version }}" --notes-file notes.md
 
       - name: Update the Homebrew cask (skipped without HOMEBREW_TAP_TOKEN)
-        if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
+        if: github.event_name == 'push' && env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
         env:
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           VERSION: ${{ steps.v.outputs.version }}
