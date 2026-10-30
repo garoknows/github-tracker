@@ -139,6 +139,10 @@ Built with ideas (not code) from these projects. Thank you!
 
 No code from the GPL-licensed projects was copied into this MIT project.
 
+## Support
+
+Tracker for GitHub is free. If it's useful to you, you can [sponsor its development](https://github.com/sponsors/garoknows).
+
 ## License
 
 [MIT](LICENSE) © garoknows
