@@ -121,7 +121,7 @@ jobs:
       - name: Release notes
         run: |
           V="${{ steps.v.outputs.version }}"
-          awk -v v="$V" '$0 ~ "^## \\[?"v"\\]?" {f=1; next} /^## / && f {exit} f' CHANGELOG.md | grep -v '^\[' > notes.md
+          awk -v v="$V" '$0 ~ "^## \\[?"v"\\]?" {f=1; next} /^## / && f {exit} f' CHANGELOG.md | { grep -v '^\[' || true; } > notes.md
           if [ "$HAS_SIGNING" = "true" ] && [ "$HAS_NOTARY" = "true" ]; then
             cat >> notes.md <<'NOTES'
 

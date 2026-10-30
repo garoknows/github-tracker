@@ -61,22 +61,19 @@
 
 ## Install
 
+**Download:**
 1. Download **Tracker-for-GitHub-x.y.z.dmg** from the [latest release](https://github.com/garoknows/github-tracker/releases/latest).
 2. Open it and drag **Tracker for GitHub** into **Applications**.
-3. Open the app. The first time, macOS shows a warning. That's expected (see below).
+3. Open the app. It's signed and notarized by Apple, so macOS only asks you to confirm the first time.
 4. Click the graph icon in your menu bar and type a GitHub username.
 
-Step-by-step pictures: **[docs/INSTALL.md](docs/INSTALL.md)** (also as a [printable PDF](docs/Tracker-for-GitHub-Install-Guide.pdf)).
+**Or with [Homebrew](https://brew.sh):**
 
-### About the "Open Anyway" step
+```sh
+brew install --cask garoknows/tap/tracker-for-github
+```
 
-This app is free and isn't signed with a paid Apple Developer account yet, so the first time you open it, macOS says it "could not verify" the app. That's normal for small open-source apps. You approve it once:
-
-1. Click **Done** on the warning.
-2. Open **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to "Tracker for GitHub was blocked."
-3. Confirm with your password or Touch ID.
-
-On macOS 15 and later the old right-click → Open shortcut no longer works, so use System Settings. If you'd rather skip this step entirely, build it yourself (below). Apps you build on your own Mac don't get the warning.
+Step-by-step pictures: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 ## Build from source
 

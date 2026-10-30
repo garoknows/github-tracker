@@ -1,8 +1,8 @@
 # Install and use Tracker for GitHub
 
-A plain-language guide for anyone. Download the app, approve it once, then add the people you want to follow. About 5 minutes. Works on **macOS 14 Sonoma or later**, on Apple silicon and Intel Macs.
+A plain-language guide for anyone. Download the app, open it, then add the people you want to follow. About 5 minutes. Works on **macOS 14 Sonoma or later**, on Apple silicon and Intel Macs.
 
-Prefer a printable version? See [Tracker-for-GitHub-Install-Guide.pdf](Tracker-for-GitHub-Install-Guide.pdf).
+Prefer Homebrew? Run `brew install --cask garoknows/tap/tracker-for-github` in Terminal and skip to step 4.
 
 ---
 
@@ -22,18 +22,12 @@ Prefer a printable version? See [Tracker-for-GitHub-Install-Guide.pdf](Tracker-f
 
 <img src="install/step2-drag.png" alt="Drag the app icon onto the Applications folder" width="440">
 
-## 3. Approve it the first time
+## 3. Open it
 
-This free app isn't signed by Apple yet, so your Mac blocks the first launch. That's normal for indie open-source apps, and you only approve it once:
+The app is signed and notarized by Apple, so it opens like any app you download.
 
-1. Open **Applications** and double-click **Tracker for GitHub**. A warning appears. Click **Done**.
-2. Open **System Settings → Privacy & Security**.
-3. Scroll down to **Security**. Next to "Tracker for GitHub was blocked," click **Open Anyway**.
-4. Confirm with your password or Touch ID, then click **Open Anyway** again.
-
-> On macOS 15 and later, the old right-click → Open trick no longer works. Use System Settings as shown.
-
-<img src="install/step3-open-anyway.png" alt="Click Done on the warning, then Open Anyway in Privacy & Security" width="440">
+1. Open **Applications** and double-click **Tracker for GitHub**.
+2. The first time, macOS asks if you're sure you want to open an app downloaded from the Internet. Click **Open**.
 
 ## 4. Add yourself and your favorites
 
@@ -50,7 +44,7 @@ This free app isn't signed by Apple yet, so your Mac blocks the first launch. Th
 
 1. Click the **date and time** in the menu bar to open Notification Center. Scroll to the bottom and click **Edit Widgets**. (For the desktop: right-click the desktop → **Edit Widgets**.)
 2. Search for **Tracker**. Pick **Small**, **Medium** or **Large** and drag it where you want.
-3. Right-click the new widget → **Edit Widget** and type up to 5 usernames.
+3. The widget shows your app favorites automatically. To show different people, right-click it → **Edit Widget**, turn off **Use my app favorites** and type up to 5 usernames.
 4. On Medium and Large widgets, click **◀ ▶** to flip between them.
 
 > Widgets can't be swiped on a Mac. That's an Apple limit, which is why they have buttons.
@@ -75,7 +69,7 @@ The four-way Commits / Issues / Pull requests / Code review chart usually loads 
 
 ## Build it yourself (for developers)
 
-Building from source skips the security warning because the app was made on your own Mac. You need **Xcode** (free in the Mac App Store). Run these one at a time in Terminal:
+You need **Xcode** (free in the Mac App Store). Run these one at a time in Terminal:
 
 ```sh
 git clone https://github.com/garoknows/github-tracker.git
@@ -93,13 +87,13 @@ The script builds the app, copies it into Applications and opens it. If Xcode is
 
 ## Update or remove
 
-- **Update:** Settings → About → **Check for updates** opens the newest release. Download it and drag it into Applications, replacing the old one.
+- **Update:** Settings → About → **Check for updates** opens the newest release. Download it and drag it into Applications, replacing the old one. With Homebrew: `brew upgrade --cask tracker-for-github`.
 - **Remove:** click the menu bar icon → **Quit**, remove any widgets (Edit Widgets → ⊖), then drag the app from Applications to the Trash.
 
 ## FAQ
 
-**Why does my Mac warn me about this app?**
-Apple only fully trusts apps from developers who pay for a yearly Apple Developer membership. This project is free and doesn't have that yet. The source code is public so anyone can check what it does.
+**Is it safe to open?**
+Yes. Every release is signed with an Apple Developer ID and notarized, which means Apple scanned it for malware before you download it. The source code is public too, so anyone can check what it does.
 
 **Why is the quadrant chart missing for someone?**
 GitHub only shows it for people who turned on "Activity overview" in their profile settings. If they did and it's still missing, add a token in Settings (step 6).

@@ -2,6 +2,17 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-30
+
+### Added
+- **Signed and notarized by Apple.** The download now opens like any other Mac app. No more "Open Anyway" step in System Settings.
+- **Install with Homebrew:** `brew install --cask garoknows/tap/tracker-for-github`.
+- **Widgets follow your app favorites.** New widgets show the people you saved in the app, and update when you change them. Turn off **Use my app favorites** in Edit Widget to type a separate list, as before.
+- A **Sponsor** button on the GitHub page, for anyone who wants to support the project.
+
+### Changed
+- Your favorites and settings move to a shared space the widget can read. This happens automatically the first time you open 1.1.0.
+
 ## [1.0.1] - 2026-10-26
 
 ### Fixed
@@ -26,5 +37,6 @@ First release.
 - Color themes (GitHub Green, Halloween, Ocean, Mono), System/Light/Dark appearance, Launch at login, Check for updates.
 - VoiceOver labels for every graph day and the quadrant chart.
 
+[1.1.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.1.0
 [1.0.1]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.1
 [1.0.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.0
