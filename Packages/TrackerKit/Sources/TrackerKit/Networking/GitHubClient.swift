@@ -142,7 +142,7 @@ public actor GitHubClient {
     // MARK: Plumbing
 
     /// Builds a URL from a template that already holds a validated username; refuses anything odd.
-    private func url(_ string: String) throws -> URL {
+    func url(_ string: String) throws -> URL {
         guard let url = URL(string: string), let host = url.host, Self.allowedHosts.contains(host) else {
             throw TrackerError.blockedHost(string)
         }
@@ -154,7 +154,7 @@ public actor GitHubClient {
         return String(decoding: data, as: UTF8.self)
     }
 
-    private func request(_ url: URL, method: String = "GET", body: Data? = nil,
+    func request(_ url: URL, method: String = "GET", body: Data? = nil,
                          headers: [String: String], notFound: String?) async throws -> Data {
         guard let host = url.host, Self.allowedHosts.contains(host) else {
             throw TrackerError.blockedHost(url.host ?? url.absoluteString)

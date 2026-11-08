@@ -5,6 +5,14 @@ public struct LoadResult: Sendable {
     public let snapshot: ProfileSnapshot?
     /// Set when the network failed; `snapshot` is then the cached copy (if any).
     public let error: TrackerError?
+    /// Set when the Activity overview couldn't be refreshed; `snapshot` then carries the last good one.
+    public let overviewError: TrackerError?
+
+    public init(snapshot: ProfileSnapshot?, error: TrackerError?, overviewError: TrackerError? = nil) {
+        self.snapshot = snapshot
+        self.error = error
+        self.overviewError = overviewError
+    }
 
     public var isOffline: Bool { error != nil && snapshot != nil }
 }
