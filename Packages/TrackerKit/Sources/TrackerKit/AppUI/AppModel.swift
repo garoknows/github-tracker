@@ -82,17 +82,26 @@ public final class AppModel {
 
     let loader: ProfileLoader
     let prefs: Preferences
+    /// Tells widgets to redraw (favorites or token changed). Tests pass their own.
+    @ObservationIgnored let reloadWidgets: @MainActor () -> Void
     @ObservationIgnored private var timer: Timer?
 
-    public init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = .forApp()) {
+    public convenience init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = .forApp()) {
+        self.init(loader: loader, prefs: prefs, reloadWidgets: { WidgetCenter.shared.reloadAllTimelines() })
+    }
+
+    init(loader: ProfileLoader, prefs: Preferences, reloadWidgets: @escaping @MainActor () -> Void) {
         self.loader = loader
         self.prefs = prefs
+        self.reloadWidgets = reloadWidgets
         favorites = prefs.favorites
         theme = prefs.theme
         appearance = prefs.appearance
         iconStyle = prefs.iconStyle
         interval = prefs.interval
+        // The first read after updating from 1.1.0 moves the token where the widget can read it.
         hasToken = loader.tokens.read() != nil
+        if hasToken { reloadWidgets() }
         for login in favorites {
             if let cached = loader.cache.snapshot(for: login) {
                 results[login] = LoadResult(snapshot: cached, error: nil)
@@ -112,7 +121,12 @@ public final class AppModel {
 
     /// "Offline, showing data from 2 hr ago." when the last refresh failed but we have saved data.
     public func offlineMessage(for login: String, now: Date = Date()) -> String? {
-        guard let r = results[login], let error = r.error, let snap = r.snapshot else { return nil }
+        guard let r = results[login], let snap = r.snapshot else { return nil }
+        guard let error = r.error else {
+            // The graph is fresh but the Activity overview is the last saved one.
+            guard r.overviewError != nil, snap.overview.overview != nil else { return nil }
+            return "Couldn't refresh the Activity overview, showing the last saved one."
+        }
         if case .rateLimited = error { return "Paused by GitHub, showing data from \(Format.age(since: snap.fetchedAt, now: now))." }
         return "Offline, showing data from \(Format.age(since: snap.fetchedAt, now: now))."
     }
@@ -177,7 +191,7 @@ public final class AppModel {
     private func saveFavorites() {
         prefs.favorites = favorites
         // Widgets set to "Use my app favorites" read the shared list; tell them it changed.
-        WidgetCenter.shared.reloadAllTimelines()
+        reloadWidgets()
     }
 
     // MARK: Refresh
@@ -190,8 +204,13 @@ public final class AppModel {
     public func refresh(_ login: String) async {
         refreshing.insert(login)
         let result = await loader.load(login)
-        results[login] = result
         refreshing.remove(login)
+        // Removed while loading: don't bring it back (the load also re-saved its cache file).
+        guard favorites.contains(login) else {
+            loader.cache.remove(login)
+            return
+        }
+        results[login] = result
         onChange?()
     }
 
@@ -227,6 +246,7 @@ public final class AppModel {
             loader.tokens.delete()
             hasToken = false
             tokenStatus = "Token removed."
+            reloadWidgets()
             return
         }
         tokenStatus = "Testing…"
@@ -235,6 +255,7 @@ public final class AppModel {
             try loader.tokens.save(trimmed)
             hasToken = true
             tokenStatus = "Works. Signed in as @\(login). Saved in your Keychain."
+            reloadWidgets()
             await refreshAll()
         } catch let e as TrackerError {
             tokenStatus = e.errorDescription
@@ -247,6 +268,7 @@ public final class AppModel {
         loader.tokens.delete()
         hasToken = false
         tokenStatus = "Token removed from your Keychain."
+        reloadWidgets()
     }
 
     // MARK: Appearance

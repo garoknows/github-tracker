@@ -2,6 +2,23 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-11-08
+
+### Fixed
+- **Evening contributions no longer drop out of your stats.** GitHub counts days in UTC, so after about 5 pm in the western US its newest day is already "tomorrow." The Total tile, current streak, widget and the 7-day menu bar strip now count that day, and always match the total in the heading.
+- **Widgets can use your token.** The token now lives in a Keychain spot the app and its widget share. The first time you open 1.1.1 it moves your saved token there, and **macOS may ask once** to let Tracker for GitHub use it: click **Always Allow**. If a widget can't read the token yet, it says "Open Tracker to use your token" instead of asking you to add one.
+- **A brief GitHub slowdown or network drop keeps your Activity overview.** Before, it was replaced with "Add a free token." Now the last good chart stays, with a note, and refreshes again on its own.
+- After you add or remove a token, widgets update right away instead of up to 30 minutes later.
+- Removing a person while their card was refreshing could bring their saved data back.
+
+### Security
+- The app now refuses any request that isn't HTTPS, so a token can never be sent unencrypted.
+- The release pipeline is locked down: signing happens in a job that can't publish, versions are validated, third-party actions are pinned, and no token is ever written to disk.
+
+### Changed
+- The printable install guide (PDF) is rebuilt from the current instructions, so it no longer shows the old "Open Anyway" steps.
+- Uninstalling with Homebrew now quits the app first, and `--zap` also removes its Application Scripts folders. Uninstalling doesn't remove the token from your Keychain; see the install guide for how.
+
 ## [1.1.0] - 2026-10-30
 
 ### Added
@@ -37,6 +54,7 @@ First release.
 - Color themes (GitHub Green, Halloween, Ocean, Mono), System/Light/Dark appearance, Launch at login, Check for updates.
 - VoiceOver labels for every graph day and the quadrant chart.
 
+[1.1.1]: https://github.com/garoknows/github-tracker/releases/tag/v1.1.1
 [1.1.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.1.0
 [1.0.1]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.1
 [1.0.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.0

@@ -1,6 +1,10 @@
 import AppKit
 import SwiftUI
 
+// Renders the printable install guide from docs/INSTALL.md, so the PDF can never drift from it.
+// Run from the repo root: swift run --package-path tools/docgen docgen .
+// Writes docs/Tracker-for-GitHub-Install-Guide.pdf and site/Tracker-for-GitHub-Install-Guide.pdf.
+
 // Shared look: GitHub Primer neutrals, the green contribution scale, the 3×3 brand mark.
 enum Style {
     static let fg = Color(red: 0x1f / 255, green: 0x23 / 255, blue: 0x28 / 255)
@@ -8,9 +12,13 @@ enum Style {
     static let border = Color(red: 0xd1 / 255, green: 0xd9 / 255, blue: 0xe0 / 255)
     static let canvas = Color(red: 0xf6 / 255, green: 0xf8 / 255, blue: 0xfa / 255)
     static let green = Color(red: 0x1a / 255, green: 0x7f / 255, blue: 0x37 / 255)
-    static let dark = Color(red: 0x0d / 255, green: 0x11 / 255, blue: 0x17 / 255)
-    static let scale: [Color] = [0xeff2f5, 0xaceebb, 0x4ac26b, 0x2da44e, 0x116329].map {
-        Color(red: Double(($0 >> 16) & 0xff) / 255, green: Double(($0 >> 8) & 0xff) / 255, blue: Double($0 & 0xff) / 255)
+    static let scale: [Color] = [hex(0xeff2f5), hex(0xaceebb), hex(0x4ac26b), hex(0x2da44e), hex(0x116329)]
+
+    static func hex(_ rgb: Int) -> Color {
+        let r = Double((rgb >> 16) & 0xff) / 255
+        let g = Double((rgb >> 8) & 0xff) / 255
+        let b = Double(rgb & 0xff) / 255
+        return Color(red: r, green: g, blue: b)
     }
 }
 
@@ -31,261 +39,238 @@ struct BrandMark: View {
     }
 }
 
-/// A decorative strip of contribution squares.
-struct Squares: View {
-    var columns: Int
-    var cell: CGFloat
-    var body: some View {
-        HStack(spacing: cell * 0.3) {
-            ForEach(0..<columns, id: \.self) { c in
-                VStack(spacing: cell * 0.3) {
-                    ForEach(0..<7, id: \.self) { r in
-                        let n = (c * 7 + r) * 2654435761 % 97
-                        let level = c > columns - 5 ? (n % 4) + 1 : (n < 12 ? n % 3 + 1 : 0)
-                        RoundedRectangle(cornerRadius: cell * 0.2).fill(Style.scale[level]).frame(width: cell, height: cell)
-                    }
-                }
-            }
+// MARK: A small Markdown reader (only what INSTALL.md uses)
+
+enum Block {
+    case title(String)
+    case heading(String)
+    case paragraph(String)
+    case numbered(Int, String)
+    case bullet(String)
+    case note(String)
+    case image(path: String, alt: String)
+    case code(String)
+    case rule
+
+    var isHeading: Bool {
+        switch self {
+        case .title, .heading: true
+        default: false
         }
     }
 }
 
-// MARK: Thesis (one US Letter page)
+func parse(_ markdown: String) -> [Block] {
+    var blocks: [Block] = []
+    var paragraph: [String] = []
+    var note: [String] = []
+    var code: [String]?
 
-struct Section: View {
-    let title: String
-    let items: [String]
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(size: 11.5, weight: .bold)).foregroundStyle(Style.green)
-            ForEach(items, id: \.self) { item in
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    RoundedRectangle(cornerRadius: 1).fill(Style.scale[3]).frame(width: 4, height: 4).offset(y: -1)
-                    Text(.init(item)).font(.system(size: 8.6)).foregroundStyle(Style.fg).fixedSize(horizontal: false, vertical: true)
-                }
+    func flush() {
+        if !paragraph.isEmpty { blocks.append(.paragraph(paragraph.joined(separator: "\n"))) }
+        if !note.isEmpty { blocks.append(.note(note.joined(separator: "\n"))) }
+        paragraph = []
+        note = []
+    }
+
+    for raw in markdown.components(separatedBy: "\n") {
+        let line = raw.trimmingCharacters(in: .whitespaces)
+        if var lines = code {
+            if line.hasPrefix("```") {
+                blocks.append(.code(lines.joined(separator: "\n")))
+                code = nil
+            } else {
+                lines.append(raw)
+                code = lines
             }
+            continue
+        }
+        if line.hasPrefix("```") { flush(); code = []; continue }
+        if line.isEmpty { flush(); continue }
+        if line == "---" { flush(); blocks.append(.rule); continue }
+        if line.hasPrefix("# ") { flush(); blocks.append(.title(String(line.dropFirst(2)))); continue }
+        if line.hasPrefix("## ") { flush(); blocks.append(.heading(String(line.dropFirst(3)))); continue }
+        if line.hasPrefix(">") {
+            if !paragraph.isEmpty { flush() }
+            note.append(line.dropFirst().trimmingCharacters(in: .whitespaces))
+            continue
+        }
+        if line.hasPrefix("<img") {
+            flush()
+            blocks.append(.image(path: attribute("src", in: line) ?? "", alt: attribute("alt", in: line) ?? ""))
+            continue
+        }
+        if line.hasPrefix("- ") { flush(); blocks.append(.bullet(String(line.dropFirst(2)))); continue }
+        if let dot = line.firstIndex(of: "."), let n = Int(line[..<dot]), line[line.index(after: dot)...].hasPrefix(" ") {
+            flush()
+            blocks.append(.numbered(n, line[line.index(dot, offsetBy: 2)...].trimmingCharacters(in: .whitespaces)))
+            continue
+        }
+        paragraph.append(line)
+    }
+    flush()
+    return blocks
+}
+
+func attribute(_ name: String, in tag: String) -> String? {
+    guard let start = tag.range(of: "\(name)=\"") else { return nil }
+    let rest = tag[start.upperBound...]
+    guard let end = rest.firstIndex(of: "\"") else { return nil }
+    return String(rest[..<end])
+}
+
+/// Inline Markdown (bold, code, links) as styled text. Links print their address too, since paper can't be clicked.
+func inline(_ text: String) -> Text {
+    var options = AttributedString.MarkdownParsingOptions()
+    options.interpretedSyntax = .inlineOnlyPreservingWhitespace
+    guard let parsed = try? AttributedString(markdown: text, options: options) else { return Text(text) }
+    var out = AttributedString()
+    for run in parsed.runs {
+        var piece = AttributedString(parsed[run.range])
+        guard let link = run.link, link.scheme?.hasPrefix("http") == true else { out += piece; continue }
+        piece.swiftUI.foregroundColor = Style.green
+        out += piece
+        let address = link.absoluteString.replacingOccurrences(of: "https://", with: "")
+        if !String(piece.characters).contains(address) {
+            var suffix = AttributedString(" (\(address))")
+            suffix.swiftUI.foregroundColor = Style.muted
+            out += suffix
+        }
+    }
+    return Text(out)
+}
+
+// MARK: Pages
+
+let page = CGSize(width: 612, height: 792) // US Letter
+let margin: CGFloat = 54
+let contentWidth = page.width - margin * 2
+
+struct BlockView: View {
+    let block: Block
+    let docs: URL
+
+    var body: some View {
+        switch block {
+        case .title(let t):
+            HStack(spacing: 12) {
+                BrandMark(size: 34)
+                Text(t).font(.system(size: 22, weight: .bold)).foregroundStyle(Style.fg)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        case .heading(let t):
+            Text(t).font(.system(size: 15, weight: .bold)).foregroundStyle(Style.green)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 10)
+        case .paragraph(let t):
+            inline(t).font(.system(size: 10.5)).foregroundStyle(Style.fg).lineSpacing(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .numbered(let n, let t):
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(n).").font(.system(size: 10.5, weight: .semibold)).foregroundStyle(Style.green).frame(width: 16, alignment: .trailing)
+                inline(t).font(.system(size: 10.5)).foregroundStyle(Style.fg).lineSpacing(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        case .bullet(let t):
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                RoundedRectangle(cornerRadius: 1).fill(Style.scale[3]).frame(width: 5, height: 5).frame(width: 16, alignment: .trailing)
+                inline(t).font(.system(size: 10.5)).foregroundStyle(Style.fg).lineSpacing(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        case .note(let t):
+            inline(t).font(.system(size: 10)).foregroundStyle(Style.muted).lineSpacing(2)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Style.canvas))
+                .overlay(alignment: .leading) { Rectangle().fill(Style.scale[3]).frame(width: 3) }
+        case .image(let path, let alt):
+            if let image = NSImage(contentsOf: docs.appendingPathComponent(path)) {
+                Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 340, maxHeight: 230)
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Style.border))
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(alt)
+            } else {
+                Text("[\(alt)]").font(.system(size: 9)).foregroundStyle(Style.muted)
+            }
+        case .code(let t):
+            Text(t).font(.system(size: 9.5, design: .monospaced)).foregroundStyle(Style.fg)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Style.canvas))
+        case .rule:
+            Rectangle().fill(Style.border).frame(height: 1).padding(.vertical, 4)
         }
     }
 }
 
-struct ThesisPage: View {
+struct PageView: View {
+    let blocks: [Block]
+    let docs: URL
+    let number: Int
+    let count: Int
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            HStack(alignment: .center, spacing: 12) {
-                BrandMark(size: 40)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Tracker for GitHub").font(.system(size: 20, weight: .bold)).foregroundStyle(Style.fg)
-                    Text("Why it matters and what it could become · a one-page thesis · October 2026")
-                        .font(.system(size: 9)).foregroundStyle(Style.muted)
-                }
-                Spacer()
-                Squares(columns: 10, cell: 5)
-            }
-            Text("**The bet.** The GitHub contribution graph is the most-looked-at picture of a developer's work. It's on every profile and shows up in résumés and hiring screens, and plenty of people keep their streaks going just to see it stay green. But you have to open a browser and go looking for it. Tracker for GitHub puts that picture, and GitHub's own Activity overview chart, in the Mac menu bar, on the desktop and in Notification Center. It doesn't need an account, a server or any tracking.")
-                .font(.system(size: 9.4)).foregroundStyle(Style.fg).fixedSize(horizontal: false, vertical: true)
-                .padding(10).background(RoundedRectangle(cornerRadius: 8).fill(Style.canvas))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Style.border))
-            HStack(alignment: .top, spacing: 18) {
-                VStack(alignment: .leading, spacing: 11) {
-                    Section(title: "Why now", items: [
-                        "**The existing tools are abandoned.** Most contribution widgets haven't been updated in years. Their reviews say things like \"every username is invalid.\"",
-                        "**Nobody shows the Activity overview.** We verified the Commits / Issues / PRs / Code review chart can be read publicly, with no login.",
-                        "**macOS 14 made widgets interactive**, so \"flip through the people I follow\" works on the desktop for the first time.",
-                    ])
-                    Section(title: "Who it's for", items: [
-                        "**Builders keeping a streak.** A 7-day strip in the menu bar is a gentle daily nudge.",
-                        "**People who follow people.** Managers, mentors, teachers and friends can swipe through up to 10 favorites.",
-                        "**Widget people.** A glanceable graph on the desktop that refreshes itself.",
-                    ])
-                    Section(title: "What success looks like in year one", items: [
-                        "Steady release downloads, stars and outside pull requests.",
-                        "Fixes within days whenever GitHub changes its pages.",
-                        "There are no analytics on purpose, so downloads, stars and contributors are the scoreboard.",
-                    ])
-                }
-                VStack(alignment: .leading, spacing: 11) {
-                    Section(title: "How an open-source tool like this grows", items: [
-                        "**It markets itself.** Every screenshot of a green widget is an ad, and developers post their setups.",
-                        "**GitHub-native distribution.** README, topics, Releases and a Pages site, then a Homebrew tap and a Show HN post.",
-                        "**Trust as the feature.** No analytics, MIT license, public code and a Keychain-only token.",
-                        "**Contributors.** One tested parser module with saved fixtures makes outside fixes easy and safe.",
-                        "**Sustainability.** GitHub Sponsors. No paid tier, no lock-in.",
-                    ])
-                    Section(title: "What v2 and beyond could become", items: [
-                        "**v2: your work, not just your graph.** Sign in to see open issues as cards by repo, with label filters, one-click close and \"my issues\" widgets.",
-                        "**Teams and cohorts.** A small dashboard for a class or an open-source team.",
-                        "**Goals.** Local streak reminders and weekly summaries.",
-                        "**Everywhere.** iPhone and iPad widgets, a notarized build and Homebrew.",
-                        "**Beyond GitHub.** GitLab and Codeberg, using the same tested design.",
-                    ])
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(blocks.enumerated()), id: \.offset) { _, b in BlockView(block: b, docs: docs) }
             }
             Spacer(minLength: 0)
             HStack {
-                Text("github.com/garoknows/github-tracker · MIT license · Not affiliated with GitHub, Inc.")
+                Text("Tracker for GitHub · github.com/garoknows/github-tracker")
                 Spacer()
-                Text("garoknows.github.io/github-tracker")
+                Text("Page \(number) of \(count)")
             }
-            .font(.system(size: 7.5)).foregroundStyle(Style.muted)
+            .font(.system(size: 8)).foregroundStyle(Style.muted)
         }
-        .padding(.horizontal, 40).padding(.vertical, 36)
-        .frame(width: 612, height: 792, alignment: .topLeading)
+        .padding(margin)
+        .frame(width: page.width, height: page.height)
         .background(Color.white)
     }
 }
 
-// MARK: Deck (6 slides, 16:9)
-
-struct Slide<Content: View>: View {
-    let number: Int
-    let kicker: String
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 26) {
-            HStack(spacing: 10) {
-                BrandMark(size: 26)
-                Text(kicker.uppercased()).font(.system(size: 15, weight: .semibold)).tracking(1.2).foregroundStyle(Style.green)
-                Spacer()
-                Text("\(number) / 6").font(.system(size: 14)).foregroundStyle(Style.muted)
-            }
-            Text(title).font(.system(size: 46, weight: .bold)).foregroundStyle(Style.fg).fixedSize(horizontal: false, vertical: true)
-            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            HStack {
-                Text("Tracker for GitHub").font(.system(size: 13, weight: .semibold))
-                Text("· free, open source, MIT").font(.system(size: 13))
-                Spacer()
-                Squares(columns: 14, cell: 7)
-            }
-            .foregroundStyle(Style.muted)
-        }
-        .padding(64)
-        .frame(width: 1280, height: 720, alignment: .topLeading)
-        .background(Color.white)
-    }
-}
-
-struct Bullets: View {
-    let items: [String]
-    var size: CGFloat = 24
-    var body: some View {
-        VStack(alignment: .leading, spacing: size * 0.7) {
-            ForEach(items, id: \.self) { item in
-                HStack(alignment: .firstTextBaseline, spacing: 14) {
-                    RoundedRectangle(cornerRadius: 3).fill(Style.scale[3]).frame(width: size * 0.45, height: size * 0.45)
-                    Text(.init(item)).font(.system(size: size)).foregroundStyle(Style.fg).fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-}
-
-struct Card: View {
-    let title: String
-    let text: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.system(size: 24, weight: .bold)).foregroundStyle(Style.fg)
-            Text(text).font(.system(size: 18)).foregroundStyle(Style.muted).fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, minHeight: 210, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Style.canvas))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Style.border))
-    }
-}
-
-func image(_ root: URL, _ path: String) -> Image {
-    Image(nsImage: NSImage(contentsOf: root.appendingPathComponent(path)) ?? NSImage())
-}
-
 @MainActor
-func slides(root: URL) -> [AnyView] {
-    [
-        AnyView(
-            VStack(alignment: .leading, spacing: 30) {
-                HStack(spacing: 18) {
-                    BrandMark(size: 72)
-                    Text("Tracker for GitHub").font(.system(size: 64, weight: .bold)).foregroundStyle(.white)
-                }
-                Text("Anyone's GitHub year, in your Mac menu bar and widgets.")
-                    .font(.system(size: 34, weight: .medium)).foregroundStyle(.white.opacity(0.9))
-                Spacer()
-                Squares(columns: 40, cell: 16)
-                Text("Free · open source (MIT) · no account · no tracking · October 2026")
-                    .font(.system(size: 18)).foregroundStyle(.white.opacity(0.7))
-            }
-            .padding(72)
-            .frame(width: 1280, height: 720, alignment: .topLeading)
-            .background(Style.dark)
-        ),
-        AnyView(Slide(number: 2, kicker: "The problem", title: "The best picture of a developer's work is hidden in a browser tab") {
-            Bullets(items: [
-                "The contribution graph is on every profile and in hiring screens, and plenty of people keep streaks just to see it green.",
-                "The Mac tools that showed it are **abandoned**. Reviews say \"every username is invalid.\"",
-                "**None** show GitHub's Activity overview, the Commits / Issues / PRs / Code review chart.",
-                "None let you **flip between several people**.",
-            ])
-        }),
-        AnyView(Slide(number: 3, kicker: "The product", title: "Glance, swipe, done") {
-            HStack(alignment: .top, spacing: 36) {
-                image(root, "docs/screenshots/popover-full-light.png").resizable().scaledToFit()
-                    .frame(width: 360).clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Style.border))
-                VStack(alignment: .leading, spacing: 20) {
-                    Bullets(items: [
-                        "Year graph, 5 stats and the **Activity overview** quadrant",
-                        "Up to 10 favorites: **swipe**, ← →, or ◀ ▶",
-                        "Small, Medium, Large **widgets** with buttons",
-                        "Offline cache, 4 color themes, light and dark",
-                    ], size: 21)
-                    HStack(spacing: 14) {
-                        image(root, "docs/screenshots/widget-small-light.png").resizable().scaledToFit().frame(height: 120)
-                        image(root, "docs/screenshots/widget-medium-light.png").resizable().scaledToFit().frame(height: 120)
-                    }
-                }
-            }
-        }),
-        AnyView(Slide(number: 4, kicker: "Who it's for", title: "Three kinds of people check this every day") {
-            HStack(spacing: 22) {
-                Card(title: "Streak builders", text: "\"Show my green squares in the menu bar so I keep my streak going.\" A 7-day strip is a gentle daily nudge.")
-                Card(title: "People who follow people", text: "Managers, mentors, teachers and friends keep up to 10 favorites and swipe through their cards.")
-                Card(title: "Widget people", text: "\"Put the graph on my desktop and never open an app.\" Small, Medium and Large, refreshing themselves.")
-            }
-        }),
-        AnyView(Slide(number: 5, kicker: "How it grows", title: "Open source that markets itself") {
-            HStack(alignment: .top, spacing: 40) {
-                Bullets(items: [
-                    "**Screenshots are ads.** Developers post their setups.",
-                    "**GitHub-native distribution:** README, topics, Releases, Pages, then a Homebrew tap and Show HN.",
-                    "**Trust is the feature:** no analytics, MIT, Keychain-only token.",
-                ], size: 22)
-                Bullets(items: [
-                    "**Easy to contribute:** one tested parser with saved fixtures.",
-                    "**Sustainable:** GitHub Sponsors, no paid tier, no lock-in.",
-                    "**Scoreboard:** downloads, stars, outside PRs, fix time when GitHub changes.",
-                ], size: 22)
-            }
-        }),
-        AnyView(Slide(number: 6, kicker: "What's next", title: "From your graph to your work") {
-            HStack(spacing: 22) {
-                Card(title: "v2 · Issues as cards", text: "Sign in with GitHub. Open issues by repo, label filters, one-click close, \"my issues\" widgets.")
-                Card(title: "Teams and goals", text: "Cohort dashboards for classes and OSS teams. Local streak reminders and weekly summaries.")
-                Card(title: "Everywhere", text: "Notarized build and Homebrew. iPhone and iPad widgets. GitLab and Codeberg support.")
-            }
-        }),
-    ]
+func height(of block: Block, docs: URL) -> CGFloat {
+    let renderer = ImageRenderer(content: BlockView(block: block, docs: docs).frame(width: contentWidth))
+    renderer.proposedSize = ProposedViewSize(width: contentWidth, height: nil)
+    return renderer.nsImage?.size.height ?? 0
 }
 
+/// Splits blocks into pages. A heading always stays on the same page as the block after it.
 @MainActor
-func renderPDF(_ views: [AnyView], size: CGSize, to url: URL) {
-    var box = CGRect(origin: .zero, size: size)
-    guard let ctx = CGContext(url as CFURL, mediaBox: &box, [kCGPDFContextTitle as String: "Tracker for GitHub"] as CFDictionary) else {
-        fatalError("Can't create \(url.path)")
+func paginate(_ blocks: [Block], docs: URL) -> [[Block]] {
+    let available = page.height - margin * 2 - 24 // room for the footer
+    let heights = blocks.map { height(of: $0, docs: docs) + 8 }
+    var pages: [[Block]] = [[]]
+    var used: CGFloat = 0
+    var i = 0
+    while i < blocks.count {
+        var group = [i]
+        if blocks[i].isHeading, i + 1 < blocks.count { group.append(i + 1) }
+        let need = group.map { heights[$0] }.reduce(0, +)
+        if used + need > available, !pages[pages.count - 1].isEmpty {
+            pages.append([])
+            used = 0
+        }
+        if case .rule = blocks[i], pages[pages.count - 1].isEmpty { i += 1; continue } // no rule at a page top
+        for j in group { pages[pages.count - 1].append(blocks[j]) }
+        used += need
+        i += group.count
     }
-    for view in views {
-        let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height))
+    return pages
+}
+
+/// Writes a PDF whose only metadata is a title and a generic creator: no author, user name or file path.
+@MainActor
+func renderPDF(_ pages: [[Block]], docs: URL, to url: URL) {
+    var box = CGRect(origin: .zero, size: page)
+    let info: [String: Any] = [kCGPDFContextTitle as String: "Install and use Tracker for GitHub",
+                               kCGPDFContextCreator as String: "Tracker for GitHub docgen"]
+    guard let ctx = CGContext(url as CFURL, mediaBox: &box, info as CFDictionary) else {
+        fatalError("Can't create the PDF at \(url.lastPathComponent)")
+    }
+    for (n, blocks) in pages.enumerated() {
+        let renderer = ImageRenderer(content: PageView(blocks: blocks, docs: docs, number: n + 1, count: pages.count))
         renderer.render { _, draw in
             ctx.beginPDFPage(nil)
             draw(ctx)
@@ -293,16 +278,21 @@ func renderPDF(_ views: [AnyView], size: CGSize, to url: URL) {
         }
     }
     ctx.closePDF()
-    print("Wrote \(url.path)")
+    print("Wrote \(url.lastPathComponent) (\(pages.count) pages)")
 }
 
 @MainActor
 func run() {
     let root = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? ".", isDirectory: true)
-    let out = root.appendingPathComponent("docs/thesis", isDirectory: true)
-    try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-    renderPDF([AnyView(ThesisPage())], size: CGSize(width: 612, height: 792), to: out.appendingPathComponent("THESIS.pdf"))
-    renderPDF(slides(root: root), size: CGSize(width: 1280, height: 720), to: out.appendingPathComponent("DECK.pdf"))
+    let docs = root.appendingPathComponent("docs", isDirectory: true)
+    guard let markdown = try? String(contentsOf: docs.appendingPathComponent("INSTALL.md"), encoding: .utf8) else {
+        fatalError("Run from the repo root (or pass it): docs/INSTALL.md not found")
+    }
+    let pages = paginate(parse(markdown), docs: docs)
+    for folder in ["docs", "site"] {
+        renderPDF(pages, docs: docs,
+                  to: root.appendingPathComponent(folder).appendingPathComponent("Tracker-for-GitHub-Install-Guide.pdf"))
+    }
 }
 
 MainActor.assumeIsolated { run() }

@@ -18,6 +18,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history so the secret scan can read every commit in a pull request.
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Show toolchain
         run: |
@@ -29,11 +33,33 @@ jobs:
         run: swift test --package-path Packages/TrackerKit
 
       - name: Check the Xcode project matches project.yml
-        continue-on-error: true
         run: |
           brew install xcodegen
           xcodegen generate
-          git diff --stat --exit-code TrackerForGitHub.xcodeproj
+          if ! git diff --exit-code TrackerForGitHub.xcodeproj; then
+            echo "::error::TrackerForGitHub.xcodeproj is out of date. Run 'xcodegen generate' and commit the result."
+            exit 1
+          fi
+
+      - name: Cask updates only touch version and sha256
+        run: scripts/test-update-cask.sh
+
+      # scripts/testdata/tracker-for-github.rb is a copy of the tap's cask. Lint it with Homebrew's own
+      # tools, inside the real tap so audit sees it the way users get it.
+      - name: Lint the Homebrew cask
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_FROM_API: "1"
+        run: |
+          brew tap garoknows/tap
+          brew trust --tap garoknows/tap
+          TAP_CASK="$(brew --repository garoknows/tap)/Casks/tracker-for-github.rb"
+          if ! diff <(grep -vE '^  (version|sha256) ' "$TAP_CASK") <(grep -vE '^  (version|sha256) ' scripts/testdata/tracker-for-github.rb); then
+            echo "::warning::The published cask differs from scripts/testdata/tracker-for-github.rb (beyond version and sha256)."
+          fi
+          cp scripts/testdata/tracker-for-github.rb "$TAP_CASK"
+          brew style --cask garoknows/tap/tracker-for-github
+          brew audit --cask --strict garoknows/tap/tracker-for-github
 
       - name: Build app and widgets (Release, ad-hoc signed)
         run: |
@@ -41,7 +67,19 @@ jobs:
             -configuration Release -destination "generic/platform=macOS" \
             -derivedDataPath build.nosync/dd build
 
+      - name: Render the printable install guide from docs/INSTALL.md
+        run: swift run --package-path tools/docgen docgen .
+
+      - name: Keep the rendered guide (to compare with the committed PDF)
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-guide-pdf
+          path: |
+            docs/Tracker-for-GitHub-Install-Guide.pdf
+            site/Tracker-for-GitHub-Install-Guide.pdf
+          retention-days: 7
+
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

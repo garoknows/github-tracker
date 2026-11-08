@@ -61,7 +61,7 @@ The four-way Commits / Issues / Pull requests / Code review chart usually loads 
 4. In the app: **Settings → GitHub token → paste → Test token**.
 
 > The token is stored in your Mac's Keychain and sent only to GitHub. Delete it anytime on GitHub.
-> Widgets can't read the app's Keychain in this free build, so they always use the public chart.
+> Widgets use the same token. If a widget says "Open Tracker to use your token", open the app once and the widget picks it up at its next refresh.
 
 <img src="install/step6-token.png" alt="A fine-grained token with no permissions" width="440">
 
@@ -87,8 +87,9 @@ The script builds the app, copies it into Applications and opens it. If Xcode is
 
 ## Update or remove
 
-- **Update:** Settings → About → **Check for updates** opens the newest release. Download it and drag it into Applications, replacing the old one. With Homebrew: `brew upgrade --cask tracker-for-github`.
-- **Remove:** click the menu bar icon → **Quit**, remove any widgets (Edit Widgets → ⊖), then drag the app from Applications to the Trash.
+- **Update:** Settings → About → **Check for updates** opens the newest release. Download it and drag it into Applications, replacing the old one. With Homebrew: `brew upgrade --cask garoknows/tap/tracker-for-github`.
+- **Remove:** click the menu bar icon → **Quit**, remove any widgets (Edit Widgets → ⊖), then drag the app from Applications to the Trash. With Homebrew: `brew uninstall --cask garoknows/tap/tracker-for-github` (add `--zap` to also delete its settings and saved data).
+- **Your token stays in the Keychain after uninstalling.** To remove it, delete it in **Settings → GitHub token** before uninstalling, or open **Keychain Access**, search for `io.github.garoknows.tracker` and delete that item.
 
 ## FAQ
 

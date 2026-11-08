@@ -32,3 +32,9 @@ Config/Signing.xcconfig
 docs/design/
 docs/PRD.md
 docs/Tracker-for-GitHub-PRD.pdf
+
+# Session kickoff prompts (kept local)
+kickoff/
+
+# Theses and decks stay in garoresources.nosync/thesis/ (never pushed)
+docs/thesis/

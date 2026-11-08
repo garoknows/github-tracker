@@ -6,7 +6,7 @@ public enum MenuBarIcon {
     public static func image(style: MenuBarIconStyle, snapshot: ProfileSnapshot?, theme: ColorTheme,
                              dark: Bool, today: CivilDate = CivilDate(Date())) -> NSImage {
         guard style == .strip, let snapshot else { return glyph() }
-        let days = snapshot.calendar.days.filter { $0.date <= today }.suffix(7)
+        let days = stripDays(snapshot.calendar, today: today)
         let colors = theme.levels(dark ? .dark : .light)
         let cell: CGFloat = 4, gap: CGFloat = 1.5
         let size = NSSize(width: 7 * cell + 6 * gap, height: 18)
@@ -22,6 +22,12 @@ public enum MenuBarIcon {
         image.isTemplate = false
         image.accessibilityDescription = "Last 7 days for @\(snapshot.login): \(days.map(\.count).reduce(0, +)) contributions"
         return image
+    }
+
+    /// The days the 7-day strip shows, oldest first.
+    static func stripDays(_ calendar: ContributionCalendar, today localToday: CivilDate) -> [ContributionDay] {
+        let today = calendar.today(forLocal: localToday)
+        return Array(calendar.days.filter { $0.date <= today }.suffix(7))
     }
 
     /// Monochrome template image so macOS tints it for light and dark menu bars.

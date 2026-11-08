@@ -53,7 +53,7 @@ public struct URLSessionTransport: HTTPTransport {
 /// Talks to github.com (HTML) and api.github.com (REST and GraphQL). Nothing else.
 public actor GitHubClient {
     public static let userAgent = "TrackerForGitHub/1.0 (+https://github.com/garoknows/github-tracker)"
-    /// Hosts the client may contact. Avatars are loaded separately by the UI from GitHub's image host.
+    /// Hosts the client may contact, always over HTTPS. Avatars are loaded separately by the UI from GitHub's image host.
     public static let allowedHosts: Set<String> = ["github.com", "api.github.com"]
 
     private let transport: HTTPTransport
@@ -142,8 +142,8 @@ public actor GitHubClient {
     // MARK: Plumbing
 
     /// Builds a URL from a template that already holds a validated username; refuses anything odd.
-    private func url(_ string: String) throws -> URL {
-        guard let url = URL(string: string), let host = url.host, Self.allowedHosts.contains(host) else {
+    func url(_ string: String) throws -> URL {
+        guard let url = URL(string: string), url.scheme == "https", let host = url.host, Self.allowedHosts.contains(host) else {
             throw TrackerError.blockedHost(string)
         }
         return url
@@ -154,11 +154,13 @@ public actor GitHubClient {
         return String(decoding: data, as: UTF8.self)
     }
 
-    private func request(_ url: URL, method: String = "GET", body: Data? = nil,
+    func request(_ url: URL, method: String = "GET", body: Data? = nil,
                          headers: [String: String], notFound: String?) async throws -> Data {
         guard let host = url.host, Self.allowedHosts.contains(host) else {
             throw TrackerError.blockedHost(url.host ?? url.absoluteString)
         }
+        // Only encrypted connections, so a token can never travel in the clear.
+        guard url.scheme == "https" else { throw TrackerError.blockedHost(url.absoluteString) }
         if let until = blockedUntil[host], until > now() {
             throw TrackerError.rateLimited(until: until)
         }

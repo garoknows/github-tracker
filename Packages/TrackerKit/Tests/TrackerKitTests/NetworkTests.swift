@@ -8,6 +8,10 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
         var status = 200
         var body = ""
         var headers: [String: String] = [:]
+        /// When set, the request fails like a dropped connection instead of answering.
+        var failure: URLError.Code?
+        /// Seconds to wait before answering, like a slow network.
+        var delay: Double = 0
     }
 
     private let lock = NSLock()
@@ -27,6 +31,8 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
         }
         if isOffline { throw URLError(.notConnectedToInternet) }
         let r = reply ?? Reply(status: 404, body: "Not Found")
+        if r.delay > 0 { try await Task.sleep(for: .seconds(r.delay)) }
+        if let failure = r.failure { throw URLError(failure) }
         let response = HTTPURLResponse(url: request.url!, statusCode: r.status, httpVersion: nil, headerFields: r.headers)!
         return (Data(r.body.utf8), response)
     }
@@ -180,6 +186,7 @@ struct NetworkTests {
         // Calendar still comes from the public page.
         #expect(r.snapshot?.calendar.total == 93)
         // The token only goes to api.github.com.
+        #expect(t.requests.contains { $0.value(forHTTPHeaderField: "Authorization") != nil })
         for req in t.requests where req.value(forHTTPHeaderField: "Authorization") != nil {
             #expect(req.url?.host == "api.github.com")
         }
@@ -210,17 +217,133 @@ struct NetworkTests {
     @Test func refusesOtherHosts() async throws {
         let t = FakeTransport()
         let client = GitHubClient(transport: t)
-        // Usernames are validated first, but even a hostile one can't redirect the request host.
-        await #expect(throws: TrackerError.self) { _ = try await client.calendarHTML(for: "x@evil.example") }
-        #expect(t.requests.allSatisfy { GitHubClient.allowedHosts.contains($0.url!.host!) })
+        // Lookalike hosts, credentials-in-URL tricks and plain other hosts never leave the Mac.
+        for raw in ["https://evil.example/users/x/contributions",
+                    "https://github.com.evil.example/users/x/contributions",
+                    "https://api.github.com@evil.example/graphql",
+                    "https://evil.example/?https://api.github.com/"] {
+            let url = try #require(URL(string: raw))
+            await #expect(throws: TrackerError.blockedHost(url.host!)) {
+                _ = try await client.request(url, headers: ["Authorization": "Bearer not-real"], notFound: nil)
+            }
+            await #expect(throws: TrackerError.blockedHost(raw)) { _ = try await client.url(raw) }
+        }
+        // GitHub's own hosts over plain http are refused too, so a token can't travel unencrypted.
+        let http = "http://api.github.com/graphql"
+        await #expect(throws: TrackerError.blockedHost(http)) {
+            _ = try await client.request(URL(string: http)!, headers: ["Authorization": "Bearer not-real"], notFound: nil)
+        }
+        await #expect(throws: TrackerError.blockedHost(http)) { _ = try await client.url(http) }
+        #expect(t.requests.isEmpty)
+
+        // The allowlist really is what stopped them: the same call to GitHub goes out.
+        t.on("api.github.com/rate_limit", .init(body: "{}"))
+        _ = try await client.request(URL(string: "https://api.github.com/rate_limit")!, headers: [:], notFound: nil)
+        #expect(t.requests.count == 1)
     }
 
-    @Test func memoryTokenStore() throws {
-        let s = MemoryTokenStore()
-        #expect(s.read() == nil)
-        try s.save("abc")
-        #expect(s.read() == "abc")
-        s.delete()
-        #expect(s.read() == nil)
+}
+
+/// A brief rate limit or network drop must not replace a good Activity overview with "Add a free token".
+@Suite("Activity overview survives temporary errors")
+struct OverviewResilienceTests {
+    enum Glitch: String, CaseIterable, Sendable {
+        case tooManyRequests, rateLimit403, serverError, offline, timeout
+
+        var reply: FakeTransport.Reply {
+            switch self {
+            case .tooManyRequests: .init(status: 429, headers: ["Retry-After": "60"])
+            case .rateLimit403: .init(status: 403, headers: ["x-ratelimit-remaining": "0", "x-ratelimit-reset": "1800003660"])
+            case .serverError: .init(status: 502)
+            case .offline: .init(failure: .notConnectedToInternet)
+            case .timeout: .init(failure: .timedOut)
+            }
+        }
+    }
+
+    func setUp() throws -> (FakeTransport, ProfileLoader, DiskCache, Clock) {
+        let t = FakeTransport()
+        try stubbedGaro(t)
+        let clock = Clock(Date(timeIntervalSince1970: 1_800_000_000))
+        let cache = tempCache()
+        let loader = ProfileLoader(client: GitHubClient(transport: t, now: { clock.now }), cache: cache,
+                                   tokens: MemoryTokenStore(), now: { clock.now })
+        return (t, loader, cache, clock)
+    }
+
+    @Test(arguments: Glitch.allCases)
+    func keepsCachedOverview(_ glitch: Glitch) async throws {
+        let (t, loader, cache, clock) = try setUp()
+        let good = try #require(await loader.load("garoknows").snapshot?.overview)
+        #expect(good.overview?.commits == 53)
+
+        clock.advance(1800)
+        t.on("tab=contributions", glitch.reply)
+        let r = await loader.load("garoknows")
+        #expect(r.snapshot?.overview == good, "\(glitch) replaced the overview")
+        #expect(r.snapshot?.calendar.total == 93)
+        #expect(r.overviewError != nil, "the kept overview should be marked as stale")
+        // What's saved to disk is still the good overview, not a token prompt.
+        #expect(cache.snapshot(for: "garoknows")?.overview == good)
+    }
+
+    @Test(arguments: Glitch.allCases)
+    func neverClaimsATokenIsNeededForATemporaryError(_ glitch: Glitch) async throws {
+        let (t, loader, _, _) = try setUp()
+        t.on("tab=contributions", glitch.reply)
+        let r = await loader.load("garoknows")
+        #expect(r.snapshot?.calendar.total == 93)
+        #expect(r.snapshot?.overview == .unavailable)
+        #expect(r.overviewError != nil)
+    }
+
+    @Test func retriesAfterTheBackoff() async throws {
+        let (t, loader, _, clock) = try setUp()
+        _ = await loader.load("garoknows")
+        t.on("tab=contributions", Glitch.tooManyRequests.reply)
+        clock.advance(1800)
+        #expect(await loader.load("garoknows").overviewError != nil)
+
+        // While GitHub's Retry-After is running, nothing is sent to github.com.
+        let sent = t.requests.count
+        _ = await loader.load("garoknows")
+        #expect(t.requests.count == sent)
+
+        clock.advance(61)
+        t.on("tab=contributions", .init(body: try fixture("overview_commits_only")))
+        let r = await loader.load("garoknows")
+        #expect(r.error == nil)
+        #expect(r.overviewError == nil)
+        #expect(r.snapshot?.overview.overview?.commits == 100)
+    }
+
+    @Test func tokenPathKeepsCachedOverviewWhenGraphQLIsRateLimited() async throws {
+        let t = FakeTransport()
+        t.on("/users/octo/contributions", .init(body: try fixture("calendar_active")))
+        t.on("tab=contributions", .init(body: "<div>unexpected</div>"))
+        t.on("api.github.com/graphql", .init(body: """
+        {"data":{"user":{"login":"octo","name":null,"avatarUrl":null,"url":"https://github.com/octo","contributionsCollection":{
+          "totalCommitContributions":3,"totalIssueContributions":1,"totalPullRequestContributions":0,"totalPullRequestReviewContributions":0,
+          "contributionCalendar":{"totalContributions":4,"weeks":[]}}}}}
+        """))
+        let clock = Clock(Date(timeIntervalSince1970: 1_800_000_000))
+        let loader = ProfileLoader(client: GitHubClient(transport: t, now: { clock.now }), cache: tempCache(),
+                                   tokens: MemoryTokenStore("test-token-not-real"), now: { clock.now })
+        let good = try #require(await loader.load("octo").snapshot?.overview)
+        #expect(good.overview?.commits == 75)
+
+        clock.advance(1800)
+        t.on("api.github.com/graphql", .init(status: 403, headers: ["x-ratelimit-remaining": "0"]))
+        let r = await loader.load("octo")
+        #expect(r.snapshot?.overview == good)
+        #expect(r.overviewError != nil)
+    }
+
+    @Test func unparseablePageStillOffersTheTokenPath() async throws {
+        let (t, loader, _, _) = try setUp()
+        t.on("tab=contributions", .init(body: "<html>login wall</html>"))
+        let r = await loader.load("garoknows")
+        #expect(r.snapshot?.overview == .needsToken)
+        #expect(r.overviewError == nil)
     }
 }

@@ -116,7 +116,7 @@ Please [open an issue](https://github.com/garoknows/github-tracker/issues). All 
 
 - No account, no server, no analytics, no third-party code.
 - The app talks only to **github.com** and **api.github.com**, plus GitHub's avatar image host for profile pictures.
-- The optional token lives only in your **macOS Keychain**. It's never written to disk or logs, and only ever sent to GitHub.
+- The optional token lives only in your **macOS Keychain**, where the app and its widget can both read it. It's never written to disk, settings or logs, and only ever sent to **api.github.com**, over HTTPS.
 - The app and widgets run in Apple's App Sandbox with outgoing network access only.
 
 Details in [SECURITY.md](SECURITY.md).
