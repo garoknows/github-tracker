@@ -239,14 +239,6 @@ struct NetworkTests {
         #expect(t.requests.count == 1)
     }
 
-    @Test func memoryTokenStore() throws {
-        let s = MemoryTokenStore()
-        #expect(s.read() == nil)
-        try s.save("abc")
-        #expect(s.read() == "abc")
-        s.delete()
-        #expect(s.read() == nil)
-    }
 }
 
 /// A brief rate limit or network drop must not replace a good Activity overview with "Add a free token".

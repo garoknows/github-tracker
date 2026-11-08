@@ -68,6 +68,8 @@ public enum OverviewState: Hashable, Codable, Sendable {
     case off
     /// The public page didn't include it; a token would unlock the GraphQL path.
     case needsToken
+    /// A token is saved, but this process (the widget) can't read it yet; opening the app fixes that.
+    case tokenUnreadable
     /// GitHub was busy or unreachable and there's no earlier overview to show. Retried on the next refresh.
     case unavailable
 
@@ -81,6 +83,7 @@ public enum OverviewState: Hashable, Codable, Sendable {
         case .available: return nil
         case .off: return "Activity overview is turned off on this profile."
         case .needsToken: return "Add a free token in Settings to show this chart."
+        case .tokenUnreadable: return "Open Tracker to use your token."
         case .unavailable: return "Couldn't load this chart from GitHub just now. It will try again on the next refresh."
         }
     }

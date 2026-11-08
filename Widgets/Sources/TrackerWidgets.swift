@@ -96,7 +96,8 @@ struct Entry: TimelineEntry {
 }
 
 struct Provider: AppIntentTimelineProvider {
-    let loader = ProfileLoader()
+    /// Widgets can't show Keychain prompts, so the token store never asks for one here.
+    let loader = ProfileLoader(tokens: KeychainTokenStore(canPrompt: false))
 
     func placeholder(in context: Context) -> Entry {
         Entry(date: Date(), snapshot: SampleData.snapshot(), avatar: nil, theme: .green, index: 0, count: 3, key: "", message: nil)

@@ -51,7 +51,8 @@ public struct ProfileLoader: Sendable {
 
     /// Fresh data, plus the error that stopped the Activity overview from refreshing (if any).
     func fetch(_ login: String) async throws -> (ProfileSnapshot, TrackerError?) {
-        let token = tokens.read()
+        let tokenLookup = tokens.lookup()
+        let token = tokenLookup.token
         var graph: GitHubClient.GraphQLResult?
 
         // 1. Calendar: public HTML, falling back to GraphQL if parsing breaks.
@@ -93,6 +94,9 @@ public struct ProfileLoader: Sendable {
             }
             if let g = graph { overview = .available(g.overview, source: .graphQL) }
         }
+        if overview == .needsToken, tokenLookup == .unreadable {
+            overview = .tokenUnreadable
+        }
         if overviewError != nil {
             overview = cache.snapshot(for: login)?.overview.keptAfterError ?? .unavailable
         }
@@ -125,7 +129,7 @@ extension OverviewState {
     var keptAfterError: OverviewState? {
         switch self {
         case .available, .off: return self
-        case .needsToken, .unavailable: return nil
+        case .needsToken, .tokenUnreadable, .unavailable: return nil
         }
     }
 }
