@@ -29,8 +29,10 @@ targets:
     type: application
     platform: macOS
     sources:
-      - App/Sources
-      - App/Resources
+      - path: App/Sources
+        excludes: ["**/.claude"]
+      - path: App/Resources
+        excludes: ["**/.claude"]
     dependencies:
       - package: TrackerKit
       - target: TrackerWidgets
@@ -60,7 +62,8 @@ targets:
     type: app-extension
     platform: macOS
     sources:
-      - Widgets/Sources
+      - path: Widgets/Sources
+        excludes: ["**/.claude"]
     dependencies:
       - package: TrackerKit
       - sdk: WidgetKit.framework

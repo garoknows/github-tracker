@@ -1,5 +1,5 @@
 // swift-tools-version: 6.0
-// Renders docs/thesis/THESIS.pdf and docs/thesis/DECK.pdf from SwiftUI.
+// Renders the printable install guide (docs/ and site/Tracker-for-GitHub-Install-Guide.pdf) from docs/INSTALL.md.
 // Run from the repo root: swift run --package-path tools/docgen docgen .
 import PackageDescription
 

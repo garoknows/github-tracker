@@ -50,6 +50,18 @@ jobs:
             -configuration Release -destination "generic/platform=macOS" \
             -derivedDataPath build.nosync/dd build
 
+      - name: Render the printable install guide from docs/INSTALL.md
+        run: swift run --package-path tools/docgen docgen .
+
+      - name: Keep the rendered guide (to compare with the committed PDF)
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-guide-pdf
+          path: |
+            docs/Tracker-for-GitHub-Install-Guide.pdf
+            site/Tracker-for-GitHub-Install-Guide.pdf
+          retention-days: 7
+
       - name: Secret scan
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:

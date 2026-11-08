@@ -75,13 +75,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		015045BDAF85559A550B87A6 /* .claude */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = .claude;
-			sourceTree = "<group>";
-		};
 		2C8E92C5EC56F1108A55F81F = {
 			isa = PBXGroup;
 			children = (
@@ -147,7 +140,6 @@
 		9A7CB0EFF87D7676EA677146 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				015045BDAF85559A550B87A6 /* .claude */,
 				F6581AEA6E271172E2D52087 /* TrackerApp.swift */,
 			);
 			path = Sources;
