@@ -112,7 +112,12 @@ public final class AppModel {
 
     /// "Offline, showing data from 2 hr ago." when the last refresh failed but we have saved data.
     public func offlineMessage(for login: String, now: Date = Date()) -> String? {
-        guard let r = results[login], let error = r.error, let snap = r.snapshot else { return nil }
+        guard let r = results[login], let snap = r.snapshot else { return nil }
+        guard let error = r.error else {
+            // The graph is fresh but the Activity overview is the last saved one.
+            guard r.overviewError != nil, snap.overview.overview != nil else { return nil }
+            return "Couldn't refresh the Activity overview, showing the last saved one."
+        }
         if case .rateLimited = error { return "Paused by GitHub, showing data from \(Format.age(since: snap.fetchedAt, now: now))." }
         return "Offline, showing data from \(Format.age(since: snap.fetchedAt, now: now))."
     }

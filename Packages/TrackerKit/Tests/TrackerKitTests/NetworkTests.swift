@@ -298,7 +298,7 @@ struct OverviewResilienceTests {
         t.on("tab=contributions", glitch.reply)
         let r = await loader.load("garoknows")
         #expect(r.snapshot?.calendar.total == 93)
-        #expect(r.snapshot?.overview != .needsToken)
+        #expect(r.snapshot?.overview == .unavailable)
         #expect(r.overviewError != nil)
     }
 

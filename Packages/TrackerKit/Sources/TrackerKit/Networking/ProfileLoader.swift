@@ -40,7 +40,8 @@ public struct ProfileLoader: Sendable {
 
     public func load(_ login: String) async -> LoadResult {
         do {
-            return LoadResult(snapshot: try await fetch(login), error: nil)
+            let (snapshot, overviewError) = try await fetch(login)
+            return LoadResult(snapshot: snapshot, error: nil, overviewError: overviewError)
         } catch let error as TrackerError {
             return LoadResult(snapshot: cache.snapshot(for: login), error: error)
         } catch {
@@ -48,7 +49,8 @@ public struct ProfileLoader: Sendable {
         }
     }
 
-    func fetch(_ login: String) async throws -> ProfileSnapshot {
+    /// Fresh data, plus the error that stopped the Activity overview from refreshing (if any).
+    func fetch(_ login: String) async throws -> (ProfileSnapshot, TrackerError?) {
         let token = tokens.read()
         var graph: GitHubClient.GraphQLResult?
 
@@ -58,22 +60,41 @@ public struct ProfileLoader: Sendable {
             calendar = try CalendarParser.parse(try await client.calendarHTML(for: login))
         } catch is CalendarParser.Failure {
             guard let token else { throw TrackerError.markupChanged }
-            graph = try await client.graphQL(for: login, token: token)
-            calendar = graph!.calendar
+            let g = try await client.graphQL(for: login, token: token)
+            graph = g
+            calendar = g.calendar
         }
 
         // 2. Activity overview: public profile first; GraphQL only when the public page doesn't have it.
+        //    Only a page we couldn't read is a reason to ask for a token. A rate limit, server error or
+        //    dropped connection keeps the last good overview (marked stale) until the next refresh,
+        //    which the client already delays until GitHub's backoff has passed.
         var overview: OverviewState
+        var overviewError: TrackerError?
         do {
             overview = OverviewParser.parse(try await client.overviewHTML(for: login))
         } catch TrackerError.userNotFound(let l) {
             throw TrackerError.userNotFound(l)
         } catch {
+            overviewError = error as? TrackerError ?? .offline
             overview = .needsToken
         }
-        if overview == .needsToken, let token {
-            if graph == nil { graph = try? await client.graphQL(for: login, token: token) }
+        if overviewError == nil, overview == .needsToken, let token {
+            if graph == nil {
+                do {
+                    graph = try await client.graphQL(for: login, token: token)
+                } catch TrackerError.userNotFound(let l) {
+                    throw TrackerError.userNotFound(l)
+                } catch TrackerError.invalidToken, TrackerError.markupChanged {
+                    // The token or GraphQL's answer is the problem; the placeholder explains what to do.
+                } catch {
+                    overviewError = error as? TrackerError ?? .offline
+                }
+            }
             if let g = graph { overview = .available(g.overview, source: .graphQL) }
+        }
+        if overviewError != nil {
+            overview = cache.snapshot(for: login)?.overview.keptAfterError ?? .unavailable
         }
 
         // 3. Name and avatar: cached for 24 h; if REST is rate limited, a bare profile is fine.
@@ -95,6 +116,16 @@ public struct ProfileLoader: Sendable {
 
         let snapshot = ProfileSnapshot(profile: profile, calendar: calendar, overview: overview, fetchedAt: now())
         cache.save(snapshot, profileFetchedAt: profileFetchedAt)
-        return snapshot
+        return (snapshot, overviewError)
+    }
+}
+
+extension OverviewState {
+    /// What to keep showing when a refresh of this state failed for a temporary reason.
+    var keptAfterError: OverviewState? {
+        switch self {
+        case .available, .off: return self
+        case .needsToken, .unavailable: return nil
+        }
     }
 }

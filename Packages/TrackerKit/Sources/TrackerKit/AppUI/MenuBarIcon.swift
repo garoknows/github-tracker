@@ -25,8 +25,9 @@ public enum MenuBarIcon {
     }
 
     /// The days the 7-day strip shows, oldest first.
-    static func stripDays(_ calendar: ContributionCalendar, today: CivilDate) -> [ContributionDay] {
-        Array(calendar.days.filter { $0.date <= today }.suffix(7))
+    static func stripDays(_ calendar: ContributionCalendar, today localToday: CivilDate) -> [ContributionDay] {
+        let today = calendar.today(forLocal: localToday)
+        return Array(calendar.days.filter { $0.date <= today }.suffix(7))
     }
 
     /// Monochrome template image so macOS tints it for light and dark menu bars.

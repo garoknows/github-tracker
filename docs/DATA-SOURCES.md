@@ -9,7 +9,7 @@ Tracker for GitHub reads only public data from GitHub. This page records exactly
 | Name and avatar | `https://api.github.com/users/{name}` (REST, cached 24 h) | No | `GitHubClient.profile` |
 | Fallback for both of the above | `https://api.github.com/graphql` | Token | `GitHubClient.graphQL` |
 
-Every request sends `User-Agent: TrackerForGitHub/1.0 (+https://github.com/garoknows/github-tracker)`. The client refuses any host other than `github.com` and `api.github.com`. Avatar images are shown from GitHub's image host (`avatars.githubusercontent.com`), the same place github.com loads them from.
+Every request sends `User-Agent: TrackerForGitHub/1.0 (+https://github.com/garoknows/github-tracker)`. The client refuses any host other than `github.com` and `api.github.com`, and anything that isn't HTTPS. Avatar images are shown from GitHub's image host (`avatars.githubusercontent.com`), the same place github.com loads them from.
 
 ## 1. Contribution calendar
 
@@ -20,6 +20,8 @@ Every request sends `User-Agent: TrackerForGitHub/1.0 (+https://github.com/garok
 - the total in `<h2 id="js-contribution-activity-description">`: `93 contributions in the last year`.
 
 It covers 366 or 367 days, starting on a Sunday about a year ago, so the graph always has 53 columns. A user that doesn't exist returns **HTTP 404** with the body `Not Found`.
+
+**Dates are UTC.** Without a login, GitHub groups contributions by UTC date, not by your time zone. In Las Vegas (UTC−7 in summer, UTC−8 in winter) a new UTC day starts at 5 pm or 4 pm, so in the evening GitHub's last square is already "tomorrow" by your clock, and contributions you make then land on it. GitHub's heading total includes that square, so the app treats it as today: the Total tile, best day, average, current streak, the widget and the 7-day menu bar strip all count it, and they always agree with the heading total. GitHub is never more than one day ahead of any time zone, so a date further ahead is ignored. East of UTC (for example Tokyo in the early morning) the opposite happens: GitHub's last square is your yesterday, and the streak reads "ends yesterday" until GitHub's day catches up.
 
 The parser doesn't depend on attribute order. The intensity level comes from GitHub's own `data-level`, so the colors match github.com exactly.
 
@@ -47,6 +49,7 @@ What the fragment looks like in each case:
 | Owner has Activity overview **on** | `activity-overview-box` and `data-percentages` | The quadrant chart |
 | Owner turned it **off** | `graph-before-activity-overview` but no `activity-overview-box` | "Activity overview is turned off on this profile." |
 | Anything unexpected (layout change, login wall) | Neither | "Add a free token in Settings to show this chart." |
+| GitHub rate-limited the request, returned a server error, or the network dropped | (no page) | The last good overview, with "Couldn't refresh the Activity overview, showing the last saved one." If there is none yet: "Couldn't load this chart from GitHub just now." Retried on the next refresh, after GitHub's backoff. |
 
 Saved, trimmed fixtures for all three cases live in `Packages/TrackerKit/Tests/TrackerKitTests/Fixtures/`.
 

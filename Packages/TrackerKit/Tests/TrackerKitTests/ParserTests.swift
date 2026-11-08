@@ -91,6 +91,7 @@ struct OverviewParserTests {
     @Test func placeholderMessages() {
         #expect(OverviewState.off.placeholderMessage == "Activity overview is turned off on this profile.")
         #expect(OverviewState.needsToken.placeholderMessage == "Add a free token in Settings to show this chart.")
+        #expect(OverviewState.unavailable.placeholderMessage == "Couldn't load this chart from GitHub just now. It will try again on the next refresh.")
     }
 }
 

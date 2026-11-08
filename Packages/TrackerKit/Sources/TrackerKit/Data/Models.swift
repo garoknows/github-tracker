@@ -25,6 +25,17 @@ public struct ContributionCalendar: Hashable, Codable, Sendable {
         self.total = total ?? days.reduce(0) { $0 + $1.count }
     }
 
+    /// The day that counts as "today" for stats, streaks and the menu bar strip.
+    ///
+    /// Without a login, GitHub groups contributions by UTC date. West of UTC in the evening (after
+    /// 5 pm in Las Vegas), GitHub's last day is already the viewer's tomorrow, and the heading total
+    /// includes it. Treating that day as today keeps every number in step with the heading.
+    /// GitHub is never more than one day ahead of any time zone, so later dates are ignored.
+    public func today(forLocal local: CivilDate) -> CivilDate {
+        guard let last = days.last?.date, last == local.adding(days: 1) else { return local }
+        return last
+    }
+
     /// The most recent `weeks` columns, starting on a Sunday like GitHub's graph.
     public func lastWeeks(_ weeks: Int) -> [ContributionDay] {
         guard let last = days.last?.date else { return [] }
@@ -57,6 +68,8 @@ public enum OverviewState: Hashable, Codable, Sendable {
     case off
     /// The public page didn't include it; a token would unlock the GraphQL path.
     case needsToken
+    /// GitHub was busy or unreachable and there's no earlier overview to show. Retried on the next refresh.
+    case unavailable
 
     public var overview: ActivityOverview? {
         if case .available(let o, _) = self { return o }
@@ -68,6 +81,7 @@ public enum OverviewState: Hashable, Codable, Sendable {
         case .available: return nil
         case .off: return "Activity overview is turned off on this profile."
         case .needsToken: return "Add a free token in Settings to show this chart."
+        case .unavailable: return "Couldn't load this chart from GitHub just now. It will try again on the next refresh."
         }
     }
 }

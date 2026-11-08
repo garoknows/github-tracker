@@ -19,8 +19,10 @@ public struct ContributionStats: Hashable, Sendable {
     public let currentStreakEndsYesterday: Bool
 
     /// - Parameters:
-    ///   - today: the viewer's local date. Days after it (GitHub can be a time zone ahead) are ignored.
-    public init(calendar: ContributionCalendar, today: CivilDate) {
+    ///   - localToday: the viewer's local date. GitHub's last day may be one day later (it uses UTC);
+    ///     that day then counts as today. See `ContributionCalendar.today(forLocal:)`.
+    public init(calendar: ContributionCalendar, today localToday: CivilDate) {
+        let today = calendar.today(forLocal: localToday)
         let days = calendar.days.filter { $0.date <= today }
         total = days.reduce(0) { $0 + $1.count }
 
