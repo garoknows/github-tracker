@@ -12,8 +12,13 @@ enum Style {
     static let border = Color(red: 0xd1 / 255, green: 0xd9 / 255, blue: 0xe0 / 255)
     static let canvas = Color(red: 0xf6 / 255, green: 0xf8 / 255, blue: 0xfa / 255)
     static let green = Color(red: 0x1a / 255, green: 0x7f / 255, blue: 0x37 / 255)
-    static let scale: [Color] = [0xeff2f5, 0xaceebb, 0x4ac26b, 0x2da44e, 0x116329].map {
-        Color(red: Double(($0 >> 16) & 0xff) / 255, green: Double(($0 >> 8) & 0xff) / 255, blue: Double($0 & 0xff) / 255)
+    static let scale: [Color] = [hex(0xeff2f5), hex(0xaceebb), hex(0x4ac26b), hex(0x2da44e), hex(0x116329)]
+
+    static func hex(_ rgb: Int) -> Color {
+        let r = Double((rgb >> 16) & 0xff) / 255
+        let g = Double((rgb >> 8) & 0xff) / 255
+        let b = Double(rgb & 0xff) / 255
+        return Color(red: r, green: g, blue: b)
     }
 }
 
