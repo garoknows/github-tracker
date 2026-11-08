@@ -87,8 +87,8 @@ The script builds the app, copies it into Applications and opens it. If Xcode is
 
 ## Update or remove
 
-- **Update:** Settings → About → **Check for updates** opens the newest release. Download it and drag it into Applications, replacing the old one. With Homebrew: `brew upgrade --cask tracker-for-github`.
-- **Remove:** click the menu bar icon → **Quit**, remove any widgets (Edit Widgets → ⊖), then drag the app from Applications to the Trash. With Homebrew: `brew uninstall --cask tracker-for-github` (add `--zap` to also delete its settings and saved data).
+- **Update:** Settings → About → **Check for updates** opens the newest release. Download it and drag it into Applications, replacing the old one. With Homebrew: `brew upgrade --cask garoknows/tap/tracker-for-github`.
+- **Remove:** click the menu bar icon → **Quit**, remove any widgets (Edit Widgets → ⊖), then drag the app from Applications to the Trash. With Homebrew: `brew uninstall --cask garoknows/tap/tracker-for-github` (add `--zap` to also delete its settings and saved data).
 - **Your token stays in the Keychain after uninstalling.** To remove it, delete it in **Settings → GitHub token** before uninstalling, or open **Keychain Access**, search for `io.github.garoknows.tracker` and delete that item.
 
 ## FAQ
