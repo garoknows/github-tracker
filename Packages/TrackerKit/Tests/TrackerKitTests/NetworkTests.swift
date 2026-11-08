@@ -10,6 +10,8 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
         var headers: [String: String] = [:]
         /// When set, the request fails like a dropped connection instead of answering.
         var failure: URLError.Code?
+        /// Seconds to wait before answering, like a slow network.
+        var delay: Double = 0
     }
 
     private let lock = NSLock()
@@ -29,6 +31,7 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
         }
         if isOffline { throw URLError(.notConnectedToInternet) }
         let r = reply ?? Reply(status: 404, body: "Not Found")
+        if r.delay > 0 { try await Task.sleep(for: .seconds(r.delay)) }
         if let failure = r.failure { throw URLError(failure) }
         let response = HTTPURLResponse(url: request.url!, statusCode: r.status, httpVersion: nil, headerFields: r.headers)!
         return (Data(r.body.utf8), response)
