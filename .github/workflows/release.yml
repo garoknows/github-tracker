@@ -164,8 +164,8 @@ jobs:
           fi
           cat dist/notes.md
 
+      # Kept for dry runs too, so a signed build can be tried on a Mac before anything is published.
       - name: Keep the release files for the publish job
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: release-files
