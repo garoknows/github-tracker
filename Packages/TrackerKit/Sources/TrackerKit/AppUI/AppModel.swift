@@ -86,7 +86,7 @@ public final class AppModel {
     @ObservationIgnored let reloadWidgets: @MainActor () -> Void
     @ObservationIgnored private var timer: Timer?
 
-    public init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = .forApp()) {
+    public convenience init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = .forApp()) {
         self.init(loader: loader, prefs: prefs, reloadWidgets: { WidgetCenter.shared.reloadAllTimelines() })
     }
 
