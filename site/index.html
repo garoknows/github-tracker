@@ -353,12 +353,12 @@ summary{cursor:pointer; font-weight:600}
         <div class="screen">
           <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url">github.com/garoknows/github-tracker/releases</span></div>
           <div class="pad">
-            <div style="font-family:var(--display);font-weight:700;font-size:16px">v1.1.0 <span class="pill" style="color:#1a7f37;border-color:#1a7f37">Latest</span></div>
+            <div style="font-family:var(--display);font-weight:700;font-size:16px">v1.1.1 <span class="pill" style="color:#1a7f37;border-color:#1a7f37">Latest</span></div>
             <div style="color:var(--muted);font-size:12px;margin:4px 0 10px">First release: menu bar app and widgets.</div>
             <div style="font-weight:600;margin-bottom:6px">Assets 4</div>
             <div style="border:1px solid var(--border);border-radius:6px">
-              <div class="asset hl" style="outline-offset:-1px"><span>Tracker-for-GitHub-1.1.0.dmg</span><span>3.1 MB</span><span class="mk" style="right:-10px;top:-12px">1</span></div>
-              <div class="asset"><span>Tracker-for-GitHub-1.1.0.zip</span><span>2.9 MB</span></div>
+              <div class="asset hl" style="outline-offset:-1px"><span>Tracker-for-GitHub-1.1.1.dmg</span><span>3.1 MB</span><span class="mk" style="right:-10px;top:-12px">1</span></div>
+              <div class="asset"><span>Tracker-for-GitHub-1.1.1.zip</span><span>2.9 MB</span></div>
               <div class="asset"><span>Source code (zip)</span><span></span></div>
               <div class="asset"><span>Source code (tar.gz)</span><span></span></div>
             </div>
@@ -379,7 +379,7 @@ summary{cursor:pointer; font-weight:600}
       </div>
       <figure style="margin:0">
         <div class="screen">
-          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url" style="background:none;border:0">Tracker for GitHub 1.1.0</span></div>
+          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url" style="background:none;border:0">Tracker for GitHub 1.1.1</span></div>
           <div class="dmg">
             <div style="text-align:center"><div class="appicon hl" id="dmgIcon"><div class="g" id="iconGrid"></div><span class="mk" style="left:-12px;top:-12px">2</span></div><div class="cap">Tracker for GitHub</div></div>
             <div class="arrow" aria-hidden="true">→</div>
@@ -670,7 +670,7 @@ function renderSettings(){
   html += '<div class="row"><label id="lalbl">Launch at login</label><button type="button" class="switch" role="switch" aria-labelledby="lalbl" aria-checked="'+state.launchAtLogin+'" data-act="login"></button></div>';
   html += '<div class="row"><label>Menu bar icon</label><div class="seg" style="border-color:var(--m-border);background:var(--m-surface)"><button type="button" data-icon="strip" aria-pressed="'+(state.iconStyle==="strip")+'" style="color:var(--m-fg)">7-day strip</button><button type="button" data-icon="glyph" aria-pressed="'+(state.iconStyle==="glyph")+'" style="color:var(--m-fg)">Simple icon</button></div></div>';
   html += '<h4>Color theme</h4><div class="chips">'+themeChips()+'</div>';
-  html += '<h4>About</h4><p class="note" style="margin:0">Version 1.1.0 · MIT license · github.com/garoknows/github-tracker · <button type="button" class="mini" data-act="updates">Check for updates</button></p></div>';
+  html += '<h4>About</h4><p class="note" style="margin:0">Version 1.1.1 · MIT license · github.com/garoknows/github-tracker · <button type="button" class="mini" data-act="updates">Check for updates</button></p></div>';
   pop.innerHTML = html;
 }
 function themeChips(){ return Object.keys(THEMES).map(function(k){ var L = levels(); var t = mockIsDark() ? THEMES[k].dark : THEMES[k].light; return '<button type="button" class="chip" data-theme-pick="'+k+'" aria-pressed="'+(state.theme===k)+'"><span class="sw">'+t.slice(1).map(function(c){ return '<i style="background:'+c+'"></i>'; }).join("")+'</span>'+THEMES[k].name+'</button>'; }).join(""); }
