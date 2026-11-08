@@ -18,6 +18,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history so the secret scan can read every commit in a pull request.
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Show toolchain
         run: |
@@ -29,11 +33,16 @@ jobs:
         run: swift test --package-path Packages/TrackerKit
 
       - name: Check the Xcode project matches project.yml
-        continue-on-error: true
         run: |
           brew install xcodegen
           xcodegen generate
-          git diff --stat --exit-code TrackerForGitHub.xcodeproj
+          if ! git diff --exit-code TrackerForGitHub.xcodeproj; then
+            echo "::error::TrackerForGitHub.xcodeproj is out of date. Run 'xcodegen generate' and commit the result."
+            exit 1
+          fi
+
+      - name: Cask updates only touch version and sha256
+        run: scripts/test-update-cask.sh
 
       - name: Build app and widgets (Release, ad-hoc signed)
         run: |
@@ -42,6 +51,6 @@ jobs:
             -derivedDataPath build.nosync/dd build
 
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
