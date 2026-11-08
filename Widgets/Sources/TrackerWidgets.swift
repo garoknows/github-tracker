@@ -53,39 +53,12 @@ struct ProfilesIntent: WidgetConfigurationIntent {
 
     /// The app's favorites when chosen and available, otherwise the typed usernames.
     var logins: [String] {
-        if useAppFavorites {
-            let shared = AppGroup.sharedFavorites()
-            if !shared.isEmpty { return shared }
-        }
-        return typedLogins
-    }
-
-    /// Valid, de-duplicated usernames in the order typed.
-    var typedLogins: [String] {
-        var seen = Set<String>()
-        return [user1, user2, user3, user4, user5].compactMap { raw in
-            guard let raw, let login = try? Username.normalize(raw), seen.insert(login.lowercased()).inserted else { return nil }
-            return login
-        }
+        WidgetProfiles.logins(useAppFavorites: useAppFavorites, appFavorites: AppGroup.sharedFavorites(),
+                              typed: [user1, user2, user3, user4, user5])
     }
 }
 
 // MARK: ◀ ▶ buttons
-
-/// Remembers which person each widget configuration is showing.
-enum WidgetPage {
-    static func index(for key: String, count: Int) -> Int {
-        guard count > 0 else { return 0 }
-        let stored = UserDefaults.standard.integer(forKey: "page.\(key)")
-        return ((stored % count) + count) % count
-    }
-
-    static func shift(_ key: String, by delta: Int, count: Int) {
-        guard count > 0 else { return }
-        let next = ((index(for: key, count: count) + delta) % count + count) % count
-        UserDefaults.standard.set(next, forKey: "page.\(key)")
-    }
-}
 
 struct ShiftProfileIntent: AppIntent {
     static let title: LocalizedStringResource = "Show another profile"

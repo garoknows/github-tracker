@@ -28,8 +28,11 @@ extension Preferences {
     /// Preferences for the app: the shared App Group when signed, otherwise this app's own defaults.
     /// The first time a group is available, favorites saved by an older unsigned build move over.
     public static func forApp() -> Preferences {
-        guard let shared = AppGroup.defaults else { return Preferences() }
-        let local = UserDefaults.standard
+        forApp(shared: AppGroup.defaults, local: .standard)
+    }
+
+    static func forApp(shared: UserDefaults?, local: UserDefaults) -> Preferences {
+        guard let shared else { return Preferences(defaults: local) }
         if shared.object(forKey: favoritesKey) == nil {
             for key in ["favorites", "theme", "appearance", "iconStyle", "interval"] {
                 if let value = local.object(forKey: key) { shared.set(value, forKey: key) }
