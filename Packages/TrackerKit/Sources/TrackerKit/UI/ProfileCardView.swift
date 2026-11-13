@@ -177,8 +177,7 @@ public struct ProfileCardView: View {
                          subtitle: s.bestDay.map { Format.short($0.date) } ?? "–", theme: theme)
                 StatTile("Average", value: String(format: "%.2f", s.averagePerDay), subtitle: "per day", theme: theme)
                 StatTile("Current streak", value: Format.days(s.currentStreak.length),
-                         subtitle: s.currentStreak.length == 0 ? "no activity today"
-                            : s.currentStreakEndsYesterday ? "ends yesterday" : "ends today", theme: theme)
+                         subtitle: s.currentStreakSubtitle, theme: theme)
                 StatTile("Longest streak", value: Format.days(s.longestStreak.length),
                          subtitle: s.longestStreak.start.map { "\(Format.short($0)) – \(Format.short(s.longestStreak.end!))" } ?? "–",
                          theme: theme)

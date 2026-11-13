@@ -5,6 +5,18 @@ import Testing
 
 /// Regression tests for the 1.0.0 bug: the year graph collapsed to zero height inside the menu bar
 /// popover, because it was fully flexible and the popover measured its content with no room for it.
+/// Tests that put real windows on your screen. Off by default, in normal runs and on CI; turn on with
+/// `TRACKER_LIVE_UI_TESTS=1` only when regenerating screenshots (see CONTRIBUTING.md).
+enum LiveUITests {
+    static func enabled(environment: [String: String] = ProcessInfo.processInfo.environment,
+                        hasScreen: Bool = false) -> Bool {
+        environment["TRACKER_LIVE_UI_TESTS"] == "1" && hasScreen
+    }
+
+    /// For `.enabled(if:)`: the variable is set to 1 and there is a screen to draw on.
+    static var enabled: Bool { enabled(hasScreen: NSScreen.main != nil) }
+}
+
 @MainActor
 @Suite("Graph layout", .serialized)
 struct GraphLayoutTests {
@@ -33,7 +45,9 @@ struct GraphLayoutTests {
 
     /// Opens a real NSPopover on screen, exactly like the app, checks the graph was laid out with real
     /// height (in 1.0.0 it got almost none), and saves a screenshot of the live pixels.
-    @Test(.enabled(if: NSScreen.main != nil), arguments: [false, true])
+    /// Puts windows on your screen, so it only runs with TRACKER_LIVE_UI_TESTS=1.
+    @Test(.enabled(if: LiveUITests.enabled, "Puts windows on screen: set TRACKER_LIVE_UI_TESTS=1 to run"),
+          arguments: [false, true])
     func livePopover(dark: Bool) throws {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.accessory)

@@ -57,7 +57,7 @@ public struct WidgetCardView<Navigation: View>: View {
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(s.total.formatted()).font(.system(size: 26, weight: .bold)).foregroundStyle(palette.fg)
-                    Text("this year").font(.system(size: 12)).foregroundStyle(palette.muted)
+                    Text(Self.totalLabel).font(.system(size: 12)).foregroundStyle(palette.muted)
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -73,8 +73,8 @@ public struct WidgetCardView<Navigation: View>: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
                 HStack(spacing: 14) {
-                    stat("\(s.total.formatted())", "this year")
-                    stat("\(s.currentStreak.length)", "day streak")
+                    stat("\(s.total.formatted())", Self.totalLabel)
+                    stat("\(s.currentStreak.length)", Self.streakLabel(s.currentStreak))
                     HStack(spacing: 3) {
                         Text("Best").foregroundStyle(palette.muted)
                         Text("\(s.bestDay?.count ?? 0)").bold().foregroundStyle(palette.fg)
@@ -82,6 +82,8 @@ public struct WidgetCardView<Navigation: View>: View {
                     Spacer()
                 }
                 .font(.system(size: 12))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 if count > 1 { PageDots(count: count, index: index, size: 5).frame(maxWidth: .infinity) }
             }
         case .large:
@@ -93,12 +95,14 @@ public struct WidgetCardView<Navigation: View>: View {
                 }
                 ContributionGraphView(days: snap.calendar.lastWeeks(26), theme: theme, showLabels: true, interactive: false, maxHeight: 92)
                 HStack(spacing: 14) {
-                    stat("\(s.total.formatted())", "this year")
-                    stat("\(s.currentStreak.length)", "current")
+                    stat("\(s.total.formatted())", Self.totalLabel)
+                    stat("\(s.currentStreak.length)", Self.streakLabel(s.currentStreak))
                     stat("\(s.longestStreak.length)", "longest")
                     Spacer()
                 }
                 .font(.system(size: 12))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 Group {
                     if let o = snap.overview.overview {
                         QuadrantView(overview: o, theme: theme)
@@ -110,6 +114,16 @@ public struct WidgetCardView<Navigation: View>: View {
                 if count > 1 { PageDots(count: count, index: index, size: 5).frame(maxWidth: .infinity) }
             }
         }
+    }
+
+    /// Label next to the widget's total. The total covers the last 12 months (like "in the last year"
+    /// in the popover), not the calendar year.
+    static var totalLabel: String { "past year" }
+
+    /// Label next to the widget's streak number: "days through Nov 12" (GitHub's date for the last active day).
+    static func streakLabel(_ streak: ContributionStats.Streak) -> String {
+        guard let through = streak.through else { return "day streak" }
+        return "\(streak.length == 1 ? "day" : "days") \(through)"
     }
 
     private func stat(_ value: String, _ label: String) -> some View {

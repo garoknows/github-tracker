@@ -37,8 +37,11 @@ The app is signed and notarized by Apple, so it opens like any app you download.
 4. Flip between them with a **two-finger swipe**, the **← →** keys, or the **◀ ▶** buttons.
 
 > Want it to start automatically? Open **Settings** in the popover and turn on **Launch at login**.
+> Want a number next to the icon? **Settings → Number in menu bar** shows your last 7 days, your current streak or your last-year total. It's off until you pick one.
 
 <img src="install/step4-menu-bar.png" alt="The menu bar icon and the welcome screen" width="440">
+
+<img src="screenshots/menubar-number-light.png" alt="The menu bar icon with the number 93 next to it, set to Last year total" width="380">
 
 ## 5. Put it on your desktop or in Notification Center
 

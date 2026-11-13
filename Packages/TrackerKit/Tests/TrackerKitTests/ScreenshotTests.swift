@@ -19,7 +19,7 @@ struct ScreenshotTests {
 
     static func garo() throws -> ProfileSnapshot {
         ProfileSnapshot(
-            profile: GitHubProfile(login: "garoknows", name: "Garo", avatarURL: nil),
+            profile: GitHubProfile(login: "garoknows", name: nil, avatarURL: nil),
             calendar: try CalendarParser.parse(try fixture("calendar_active")),
             overview: OverviewParser.parse(try fixture("overview_on")),
             fetchedAt: fetched)
@@ -93,6 +93,7 @@ struct ScreenshotTests {
         let m = try model(favorites: ["garoknows", "mira-builds", "nightshift-dev"])
         try Self.render(PopoverView(model: m).background(Self.popoverBackground(dark)), name: "popover-full", dark: dark)
         m.screen = .settings
+        m.menuBarNumber = .lastSevenDays // show the new setting with a choice made
         try Self.render(PopoverView(model: m).background(Self.popoverBackground(dark)), name: "settings", dark: dark)
         let empty = try model(favorites: [])
         try Self.render(PopoverView(model: empty).background(Self.popoverBackground(dark)), name: "welcome", dark: dark)
@@ -126,6 +127,35 @@ struct ScreenshotTests {
         .padding(10)
         .background(dark ? Color(hex: 0x1f2328) : Color(hex: 0xf6f8fa))
         try Self.render(view, name: "menubar-icons", dark: dark)
+    }
+
+    /// The menu bar with Settings → Number in menu bar set to "Last year total", for the README.
+    @Test(arguments: [false, true])
+    func menuBarWithNumber(dark: Bool) throws {
+        let snap = try Self.garo()
+        let strip = MenuBarIcon.image(style: .strip, snapshot: snap, theme: .green, dark: dark, today: Self.today)
+        let title = MenuBarNumber.lastYear.title(for: snap, today: Self.today, locale: Locale(identifier: "en_US")) ?? ""
+        let fg: Color = dark ? .white : .black
+        let bar = HStack(spacing: 16) {
+            Spacer()
+            HStack(spacing: 4) {
+                Image(nsImage: strip)
+                Text(title).font(Font(MenuBarNumber.font()))
+            }
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(RoundedRectangle(cornerRadius: 5).fill(fg.opacity(0.12)))
+            Image(systemName: "wifi")
+            Image(systemName: "battery.75percent")
+            Text("Mon Oct 26  9:41 AM")
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(fg)
+        .padding(.horizontal, 12)
+        .frame(width: 380, height: 26)
+        .background(dark ? Color(hex: 0x1f2328) : Color(hex: 0xf6f8fa))
+        // Drawn at twice the size so it stays sharp in the README.
+        let big = bar.scaleEffect(2, anchor: .topLeading).frame(width: 760, height: 52, alignment: .topLeading)
+        try Self.render(big, name: "menubar-number", dark: dark, size: CGSize(width: 760, height: 52))
     }
 
     @Test func themes() throws {

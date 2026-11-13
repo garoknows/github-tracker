@@ -10,40 +10,48 @@ public enum CalendarParser {
     public enum Failure: Error, Equatable, Sendable {
         /// The HTML had no day cells; GitHub probably changed its markup.
         case noDays
+        /// Colored days are there, but their hover text (the per-day counts) isn't: GitHub changed it.
+        case countsUnreadable
     }
 
-    public static func parse(_ html: String) throws(Failure) -> ContributionCalendar {
+    /// - Parameter estimateMissingCounts: when the hover text is missing, guess 1 per colored day instead
+    ///   of throwing `countsUnreadable`. Only for showing something when nothing better is saved.
+    public static func parse(_ html: String, estimateMissingCounts: Bool = false) throws(Failure) -> ContributionCalendar {
         var countsByID: [String: Int] = [:]
         for match in tooltipRegex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
             guard let id = html.substring(match.range(at: 1)),
                   let text = html.substring(match.range(at: 2)) else { continue }
-            countsByID[id] = count(fromTooltip: text)
+            if let n = count(fromTooltip: text) { countsByID[id] = n }
         }
 
         var days: [ContributionDay] = []
+        var missingCounts = false
         for match in dayCellRegex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
             guard let tag = html.substring(match.range) else { continue }
             guard let dateString = attribute("data-date", in: tag),
                   let date = CivilDate(dateString) else { continue }
             let level = attribute("data-level", in: tag).flatMap(Int.init) ?? 0
             let id = attribute("id", in: tag)
-            // Older markup put the count in data-count; fall back to it, then to the level.
-            let count = id.flatMap { countsByID[$0] }
-                ?? attribute("data-count", in: tag).flatMap(Int.init)
-                ?? (level > 0 ? 1 : 0)
+            // Older markup put the count in data-count. A colored day with neither can't be counted.
+            let known = id.flatMap { countsByID[$0] } ?? attribute("data-count", in: tag).flatMap(Int.init)
+            if known == nil && level > 0 { missingCounts = true }
+            let count = known ?? (level > 0 ? 1 : 0)
             days.append(ContributionDay(date: date, count: count, level: level))
         }
 
         guard !days.isEmpty else { throw .noDays }
+        // Guessing 1 per colored day would quietly show wrong numbers, so say so instead.
+        if missingCounts && !estimateMissingCounts { throw .countsUnreadable }
         return ContributionCalendar(days: days, total: heading(in: html))
     }
 
     /// "No contributions on …" → 0, "1 contribution on …" → 1, "1,234 contributions on …" → 1234.
-    static func count(fromTooltip text: String) -> Int {
+    /// Anything else → nil (GitHub changed the wording).
+    static func count(fromTooltip text: String) -> Int? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.lowercased().hasPrefix("no ") { return 0 }
         let digits = trimmed.prefix { $0.isNumber || $0 == "," }.filter(\.isNumber)
-        return Int(digits) ?? 0
+        return Int(digits)
     }
 
     static func heading(in html: String) -> Int? {

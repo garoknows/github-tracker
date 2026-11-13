@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import TrackerKit
 
@@ -167,6 +168,7 @@ struct UsernameTests {
 
 /// Without a login, GitHub groups contributions by UTC date. These pin that every number agrees with
 /// GitHub's own heading total, whatever the viewer's time zone and clock say.
+@MainActor
 @Suite("UTC day boundary")
 struct UTCBoundaryTests {
     /// The viewer's local date at a wall-clock time in a time zone.
@@ -179,9 +181,18 @@ struct UTCBoundaryTests {
         return CivilDate(instant, in: tz)
     }
 
-    func expectAgrees(_ cal: ContributionCalendar, today: CivilDate, streak: Int, endsYesterday: Bool,
+    /// - Parameter through: the streak label everywhere it appears: the streak's last active day as
+    ///   GitHub dates it (UTC), like GitHub's own graph labels. Never "ends today" or "ends yesterday".
+    @MainActor
+    func expectAgrees(_ cal: ContributionCalendar, today: CivilDate, streak: Int, endsYesterday: Bool, through: String,
                       sourceLocation: SourceLocation = #_sourceLocation) {
         let s = ContributionStats(calendar: cal, today: today)
+        #expect(s.currentStreakSubtitle == through, "card", sourceLocation: sourceLocation)
+        #expect(WidgetCardView<EmptyView>.streakLabel(s.currentStreak) == "days \(through)", "widget", sourceLocation: sourceLocation)
+        let snap = ProfileSnapshot(profile: GitHubProfile(login: "mira-builds", name: nil, avatarURL: nil), calendar: cal,
+                                   overview: .off, fetchedAt: Date(timeIntervalSince1970: 1_800_000_000))
+        #expect(MenuBarNumber.currentStreak.accessibilityLabel(for: snap, today: today, locale: Locale(identifier: "en_US"))
+                == "Tracker for GitHub, current streak \(streak) days, \(through)", "VoiceOver", sourceLocation: sourceLocation)
         #expect(s.total == cal.total, "Total tile disagrees with the heading", sourceLocation: sourceLocation)
         #expect(s.currentStreak.length == streak, sourceLocation: sourceLocation)
         #expect(s.currentStreakEndsYesterday == endsYesterday, sourceLocation: sourceLocation)
@@ -195,7 +206,7 @@ struct UTCBoundaryTests {
         let today = localDay("2026-10-26", hour: 18, "America/Los_Angeles")
         #expect(today == CivilDate("2026-10-26"))
         let cal = calendar(ending: "2026-10-27", [0, 2, 1, 1, 3, 1, 1, 5])
-        expectAgrees(cal, today: today, streak: 7, endsYesterday: false)
+        expectAgrees(cal, today: today, streak: 7, endsYesterday: false, through: "through Oct 27")
         let s = ContributionStats(calendar: cal, today: today)
         #expect(s.bestDay?.count == 5)
         #expect(s.currentStreak.end == CivilDate("2026-10-27"))
@@ -206,24 +217,27 @@ struct UTCBoundaryTests {
         let today = localDay("2026-10-27", hour: 5, "Asia/Tokyo")
         #expect(today == CivilDate("2026-10-27"))
         let cal = calendar(ending: "2026-10-26", [0, 1, 1, 4])
-        expectAgrees(cal, today: today, streak: 3, endsYesterday: true)
+        expectAgrees(cal, today: today, streak: 3, endsYesterday: true, through: "through Oct 26")
     }
 
     @Test func daylightSavingChangeDays() {
         // Clocks fall back in Las Vegas on Nov 1, 2026: 6 pm PST is 2 am UTC on Nov 2.
         let fallBack = localDay("2026-11-01", hour: 18, "America/Los_Angeles")
         #expect(fallBack == CivilDate("2026-11-01"))
-        expectAgrees(calendar(ending: "2026-11-02", [0, 1, 1, 1, 1, 1, 1, 2]), today: fallBack, streak: 7, endsYesterday: false)
+        expectAgrees(calendar(ending: "2026-11-02", [0, 1, 1, 1, 1, 1, 1, 2]), today: fallBack, streak: 7, endsYesterday: false,
+                     through: "through Nov 2")
 
         // Clocks spring forward on Mar 8, 2026: 6 pm PDT is 1 am UTC on Mar 9.
         let springForward = localDay("2026-03-08", hour: 18, "America/Los_Angeles")
         #expect(springForward == CivilDate("2026-03-08"))
-        expectAgrees(calendar(ending: "2026-03-09", [3, 0, 0, 0, 0, 0, 1, 1]), today: springForward, streak: 2, endsYesterday: false)
+        expectAgrees(calendar(ending: "2026-03-09", [3, 0, 0, 0, 0, 0, 1, 1]), today: springForward, streak: 2, endsYesterday: false,
+                     through: "through Mar 9")
     }
 
     @Test func morningInLasVegasMatchesUTC() {
         // Before 5 pm the dates match; nothing changes.
         let today = localDay("2026-10-26", hour: 9, "America/Los_Angeles")
-        expectAgrees(calendar(ending: "2026-10-26", [0, 1, 1, 1, 1, 1, 1, 1]), today: today, streak: 7, endsYesterday: false)
+        expectAgrees(calendar(ending: "2026-10-26", [0, 1, 1, 1, 1, 1, 1, 1]), today: today, streak: 7, endsYesterday: false,
+                     through: "through Oct 26")
     }
 }

@@ -8,6 +8,9 @@ public struct ContributionStats: Hashable, Sendable {
         public let end: CivilDate?
 
         public static let none = Streak(length: 0, start: nil, end: nil)
+
+        /// "through Oct 27": the last active day, as GitHub dates it. Nil when there's no streak.
+        public var through: String? { end.map { "through \(Format.short($0))" } }
     }
 
     public let total: Int
@@ -17,6 +20,11 @@ public struct ContributionStats: Hashable, Sendable {
     public let longestStreak: Streak
     /// True when today has no contributions yet but yesterday did, so the current streak is still alive.
     public let currentStreakEndsYesterday: Bool
+
+    /// Under the Current streak tile: "through Oct 27", the streak's last active day as GitHub dates it,
+    /// like GitHub's own graph labels. GitHub groups contributions by UTC day, so words like "today" are
+    /// misleading in the evening west of UTC; a date isn't.
+    public var currentStreakSubtitle: String { currentStreak.through ?? "no recent activity" }
 
     /// - Parameters:
     ///   - localToday: the viewer's local date. GitHub's last day may be one day later (it uses UTC);

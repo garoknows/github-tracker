@@ -77,6 +77,7 @@ h3{font-size:17px; margin:24px 0 8px; font-weight:600}
 .mb-icon{display:flex; gap:2px; align-items:center; padding:4px 6px; border-radius:5px; border:0; background:transparent; cursor:pointer; color:inherit}
 .mb-icon.on, .mb-icon:hover{background:rgba(127,127,127,.25)}
 .mb-icon i{width:6px; height:11px; border-radius:1.5px; display:block}
+.mb-num{margin-left:4px; font-variant-numeric:tabular-nums}
 .mb-glyph{width:16px; height:16px}
 .desk{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:20px; padding:16px 16px 0}
 .desk-left{display:flex; flex-direction:column; gap:14px; align-items:flex-start; min-width:0}
@@ -310,7 +311,7 @@ summary{cursor:pointer; font-weight:600}
         </div>
         <div class="desk">
           <div class="desk-left">
-            <div class="desk-note">Menu bar icon: the last 7 days of your Primary profile. Today is the rightmost square.</div>
+            <div class="desk-note">Menu bar icon: the last 7 days of your Primary profile. The rightmost square is GitHub's newest day.</div>
             <div class="desk-note">Trackpad: two-finger swipe left or right on the card. Keyboard: ← and →. Mouse: drag the card, or click the dots.</div>
           </div>
           <div id="popWrap">
@@ -325,6 +326,7 @@ summary{cursor:pointer; font-weight:600}
     <div class="facts">
       <div class="fact"><b>Graph and stats need no login</b>Anyone's public green squares, totals and streaks load from GitHub's public profile data.</div>
       <div class="fact"><b>Quadrant chart</b>Loads from the public profile when it's there. If not, a free read-only token in Settings unlocks it.</div>
+      <div class="fact"><b>Optional number in the menu bar</b>Settings → Number in menu bar shows your last 7 days, your current streak or your last-year total next to the icon. Off unless you turn it on.</div>
       <div class="fact"><b>Widgets use buttons, not swipes</b>macOS widgets can't be swiped, so Medium and Large widgets have ◀ ▶ buttons that flip favorites.</div>
       <div class="fact"><b>Private by design</b>No account, no server, no tracking. The app talks only to github.com. Your token stays in the Keychain.</div>
     </div>
@@ -353,12 +355,12 @@ summary{cursor:pointer; font-weight:600}
         <div class="screen">
           <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url">github.com/garoknows/github-tracker/releases</span></div>
           <div class="pad">
-            <div style="font-family:var(--display);font-weight:700;font-size:16px">v1.1.1 <span class="pill" style="color:#1a7f37;border-color:#1a7f37">Latest</span></div>
-            <div style="color:var(--muted);font-size:12px;margin:4px 0 10px">First release: menu bar app and widgets.</div>
+            <div style="font-family:var(--display);font-weight:700;font-size:16px">v1.2.0 <span class="pill" style="color:#1a7f37;border-color:#1a7f37">Latest</span></div>
+            <div style="color:var(--muted);font-size:12px;margin:4px 0 10px">Adds an optional number next to the menu bar icon.</div>
             <div style="font-weight:600;margin-bottom:6px">Assets 4</div>
             <div style="border:1px solid var(--border);border-radius:6px">
-              <div class="asset hl" style="outline-offset:-1px"><span>Tracker-for-GitHub-1.1.1.dmg</span><span>3.1 MB</span><span class="mk" style="right:-10px;top:-12px">1</span></div>
-              <div class="asset"><span>Tracker-for-GitHub-1.1.1.zip</span><span>2.9 MB</span></div>
+              <div class="asset hl" style="outline-offset:-1px"><span>Tracker-for-GitHub-1.2.0.dmg</span><span>3.1 MB</span><span class="mk" style="right:-10px;top:-12px">1</span></div>
+              <div class="asset"><span>Tracker-for-GitHub-1.2.0.zip</span><span>2.9 MB</span></div>
               <div class="asset"><span>Source code (zip)</span><span></span></div>
               <div class="asset"><span>Source code (tar.gz)</span><span></span></div>
             </div>
@@ -379,7 +381,7 @@ summary{cursor:pointer; font-weight:600}
       </div>
       <figure style="margin:0">
         <div class="screen">
-          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url" style="background:none;border:0">Tracker for GitHub 1.1.1</span></div>
+          <div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url" style="background:none;border:0">Tracker for GitHub 1.2.0</span></div>
           <div class="dmg">
             <div style="text-align:center"><div class="appicon hl" id="dmgIcon"><div class="g" id="iconGrid"></div><span class="mk" style="left:-12px;top:-12px">2</span></div><div class="cap">Tracker for GitHub</div></div>
             <div class="arrow" aria-hidden="true">→</div>
@@ -422,6 +424,7 @@ summary{cursor:pointer; font-weight:600}
           <li>Flip between them with a two-finger swipe, the ← → keys, or the ◀ ▶ buttons.</li>
         </ol>
         <div class="callout tipc">Want it to start automatically? Open <b>Settings</b> in the popover and turn on <b>Launch at login</b>.</div>
+        <div class="callout tipc">Want a number next to the icon? <b>Settings → Number in menu bar</b> shows your last 7 days, your current streak or your last-year total. It's off until you pick one.</div>
       </div>
       <figure style="margin:0">
         <div class="screen">
@@ -532,7 +535,7 @@ var THEMES = {
   ocean:    {name:"Ocean",        light:["#eff2f5","#b6e3ff","#54aeff","#0969da","#0a3069"], dark:["#151b23","#0c2d6b","#1158c7","#388bfd","#79c0ff"]},
   mono:     {name:"Mono",         light:["#eff2f5","#c8ccd1","#9198a1","#59636e","#1f2328"], dark:["#151b23","#3d444d","#656c76","#9198a1","#d1d7e0"]}
 };
-var state = { theme:"green", appearance:"auto", iconStyle:"strip", launchAtLogin:true, interval:"30", idx:0, view:"card", widgetIdx:{medium:0, large:0}, tokenSet:false };
+var state = { theme:"green", appearance:"auto", iconStyle:"strip", mbNumber:"off", launchAtLogin:true, interval:"30", idx:0, view:"card", widgetIdx:{medium:0, large:0}, tokenSet:false };
 
 function pageIsDark(){
   var t = document.documentElement.getAttribute("data-theme");
@@ -569,12 +572,12 @@ function computeStats(days){
   var total = 0, best = {count:0,date:null}, longest = 0, run = 0, ls = null, bestRun = {s:null,e:null};
   var yearDays = days.filter(function(x){ return (TODAY - x.date) <= 364*86400000; });
   yearDays.forEach(function(x){ total += x.count; if (x.count > best.count) best = x; if (x.count>0){ run++; if (run===1) ls = x.date; if (run>longest){ longest = run; bestRun = {s:ls, e:x.date}; } } else run = 0; });
-  var cur = 0, i = yearDays.length-1; if (yearDays[i] && yearDays[i].count===0) i--; for (; i>=0 && yearDays[i].count>0; i--) cur++;
+  var cur = 0, curEnd = null, i = yearDays.length-1; if (yearDays[i] && yearDays[i].count===0) i--; if (i>=0 && yearDays[i].count>0) curEnd = yearDays[i].date; for (; i>=0 && yearDays[i].count>0; i--) cur++;
   var max = 0; days.forEach(function(x){ if (x.count>max) max = x.count; });
-  return {total:total, best:best, avg:(total/365), longest:longest, current:cur, max:max, bestRun:bestRun};
+  return {total:total, best:best, avg:(total/365), longest:longest, current:cur, currentEnd:curEnd, max:max, bestRun:bestRun};
 }
 var profiles = [
-  makeProfile({user:"garoknows", name:"Garo", days:garoDays(), quad:{commits:49, issues:43, prs:8, review:0}, color:"#24292f", note:"Sample shaped like your profile"}),
+  makeProfile({user:"garoknows", name:null, days:garoDays(), quad:{commits:49, issues:43, prs:8, review:0}, color:"#24292f", note:"Sample shaped like your profile"}),
   makeProfile({user:"mira-builds", name:"Mira Patel", days:steadyDays("mira-builds", .82, 14, .35), quad:{commits:62, issues:14, prs:16, review:8}, note:"Fictional sample profile"}),
   makeProfile({user:"nightshift-dev", name:"Theo Novak", days:steadyDays("nightshift-dev", .32, 6, 2.6), quad:null, quadReason:"off", note:"Fictional sample profile"})
 ];
@@ -584,6 +587,9 @@ var primary = 0;
 var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmt(d){ return MON[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(); }
 function fmtShort(d){ return MON[d.getMonth()]+" "+d.getDate(); }
+/* The streak's last active day, as GitHub dates it (like GitHub's own graph labels). */
+function through(st){ return st.currentEnd ? "through "+fmtShort(st.currentEnd) : null; }
+function streakWords(st){ var t = through(st); return t ? (st.current===1 ? "day " : "days ")+t : "day streak"; }
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function lvl(c, max){ if (!c) return 0; var q = c / Math.max(max,1); return q <= .25 ? 1 : q <= .5 ? 2 : q <= .75 ? 3 : 4; }
 function initials(p){ var s = (p.name || p.user).split(/\s+/); return (s[0][0] + (s[1] ? s[1][0] : "")).toUpperCase(); }
@@ -643,7 +649,7 @@ function cardHTML(p){
       stat("Total", s.total.toLocaleString(), "last 12 months")+
       stat("Best day", s.best.count, s.best.date ? fmtShort(s.best.date) : "–")+
       stat("Average", s.avg.toFixed(2), "per day")+
-      stat("Current streak", s.current+" day"+(s.current===1?"":"s"), s.current ? "ends today" : "no activity today")+
+      stat("Current streak", s.current+" day"+(s.current===1?"":"s"), through(s) || "no recent activity")+
       stat("Longest streak", s.longest+" day"+(s.longest===1?"":"s"), s.bestRun.s ? fmtShort(s.bestRun.s)+" – "+fmtShort(s.bestRun.e) : "–")+
     '</div>'+
     '<div class="overview"><div class="ov-text"><b>Activity overview</b><br>'+(p.quad ? 'Share of '+esc(p.name||p.user)+"'s activity this year across commits, issues, pull requests and code review." : 'This chart appears when GitHub shares it for this profile.')+'</div>'+quadBlock(p, 200)+'</div></div>';
@@ -669,17 +675,34 @@ function renderSettings(){
   html += '<h4>General</h4><div class="row"><label for="intv">Refresh every</label><select id="intv">'+[["15","15 minutes"],["30","30 minutes"],["60","1 hour"],["180","3 hours"]].map(function(o){ return '<option value="'+o[0]+'"'+(state.interval===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join("")+'</select></div>';
   html += '<div class="row"><label id="lalbl">Launch at login</label><button type="button" class="switch" role="switch" aria-labelledby="lalbl" aria-checked="'+state.launchAtLogin+'" data-act="login"></button></div>';
   html += '<div class="row"><label>Menu bar icon</label><div class="seg" style="border-color:var(--m-border);background:var(--m-surface)"><button type="button" data-icon="strip" aria-pressed="'+(state.iconStyle==="strip")+'" style="color:var(--m-fg)">7-day strip</button><button type="button" data-icon="glyph" aria-pressed="'+(state.iconStyle==="glyph")+'" style="color:var(--m-fg)">Simple icon</button></div></div>';
+  html += '<div class="row"><label for="mbnum">Number in menu bar</label><select id="mbnum">'+[["off","Off"],["week","Last 7 days"],["streak","Current streak"],["total","Last year total"]].map(function(o){ return '<option value="'+o[0]+'"'+(state.mbNumber===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join("")+'</select></div>';
   html += '<h4>Color theme</h4><div class="chips">'+themeChips()+'</div>';
-  html += '<h4>About</h4><p class="note" style="margin:0">Version 1.1.1 · MIT license · github.com/garoknows/github-tracker · <button type="button" class="mini" data-act="updates">Check for updates</button></p></div>';
+  html += '<h4>About</h4><p class="note" style="margin:0">Version 1.2.0 · MIT license · github.com/garoknows/github-tracker · <button type="button" class="mini" data-act="updates">Check for updates</button></p></div>';
   pop.innerHTML = html;
 }
 function themeChips(){ return Object.keys(THEMES).map(function(k){ var L = levels(); var t = mockIsDark() ? THEMES[k].dark : THEMES[k].light; return '<button type="button" class="chip" data-theme-pick="'+k+'" aria-pressed="'+(state.theme===k)+'"><span class="sw">'+t.slice(1).map(function(c){ return '<i style="background:'+c+'"></i>'; }).join("")+'</span>'+THEMES[k].name+'</button>'; }).join(""); }
 
 /* ---------- menu bar icon ---------- */
+/* Same rules as the app: 9,999 then 12.3k (rounded down), digits all the same width. */
+function compactNumber(n){
+  if (n < 10000) return n.toLocaleString("en-US");
+  var v = n < 1000000 ? n/1000 : n/1000000, suffix = n < 1000000 ? "k" : "M";
+  v = v < 100 ? Math.floor(v*10)/10 : Math.floor(v);
+  return String(v) + suffix;
+}
+function menuBarNumber(p){
+  if (state.mbNumber === "week") return { n: p.days.slice(-7).reduce(function(a,d){ return a+d.count; }, 0), label: function(n){ return n.toLocaleString("en-US")+" contribution"+(n===1?"":"s")+" in the last 7 days"; } };
+  if (state.mbNumber === "streak") return { n: p.stats.current, label: function(n){ var t = through(p.stats); return "current streak "+n+" day"+(n===1?"":"s")+(t ? ", "+t : ""); } };
+  if (state.mbNumber === "total") return { n: p.stats.total, label: function(n){ return n.toLocaleString("en-US")+" contribution"+(n===1?"":"s")+" in the last year"; } };
+  return null;
+}
 function renderIcon(){
   var el = document.getElementById("mbIcon"), p = profiles[primary], L = levels();
-  if (state.iconStyle === "glyph"){ el.innerHTML = '<svg class="mb-glyph" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/><rect x="6" y="1" width="4" height="4" rx="1" fill="currentColor"/><rect x="11" y="1" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="6" width="4" height="4" rx="1" fill="currentColor"/><rect x="6" y="6" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/><rect x="11" y="6" width="4" height="4" rx="1" fill="currentColor"/><rect x="1" y="11" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="6" y="11" width="4" height="4" rx="1" fill="currentColor"/><rect x="11" y="11" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/></svg>'; return; }
-  el.innerHTML = p.days.slice(-7).map(function(d){ return '<i style="background:'+(d.count ? L[lvl(d.count,p.stats.max)] : "rgba(127,127,127,.35)")+'"></i>'; }).join("");
+  var num = menuBarNumber(p);
+  el.setAttribute("aria-label", num ? "Tracker for GitHub, "+num.label(num.n) : "Tracker for GitHub, last 7 days");
+  var after = num ? '<span class="mb-num">'+compactNumber(num.n)+'</span>' : "";
+  if (state.iconStyle === "glyph"){ el.innerHTML = '<svg class="mb-glyph" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/><rect x="6" y="1" width="4" height="4" rx="1" fill="currentColor"/><rect x="11" y="1" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="1" y="6" width="4" height="4" rx="1" fill="currentColor"/><rect x="6" y="6" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/><rect x="11" y="6" width="4" height="4" rx="1" fill="currentColor"/><rect x="1" y="11" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="6" y="11" width="4" height="4" rx="1" fill="currentColor"/><rect x="11" y="11" width="4" height="4" rx="1" fill="currentColor" opacity=".35"/></svg>' + after; return; }
+  el.innerHTML = p.days.slice(-7).map(function(d){ return '<i style="background:'+(d.count ? L[lvl(d.count,p.stats.max)] : "rgba(127,127,127,.35)")+'"></i>'; }).join("") + after;
 }
 function brandMarks(){
   var L = THEMES.green.light, seq = [1,3,2,4,2,0,3,1,4];
@@ -695,10 +718,10 @@ function renderWidgets(){
   function head(p){ return '<div class="whead"><div class="avatar" style="background:'+p.color+'">'+esc(initials(p))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name||p.user)+'</div><div class="hd">@'+esc(p.user)+'</div></div></div>'; }
   function arrows(k){ return '<div class="warrows"><button type="button" data-w="'+k+'" data-dir="-1" aria-label="Previous">◀</button><button type="button" data-w="'+k+'" data-dir="1" aria-label="Next">▶</button></div>'; }
   function wdots(i){ return '<div class="wdots">'+profiles.map(function(_,j){ return '<i class="'+(j===i?"on":"")+'"></i>'; }).join("")+'</div>'; }
-  var small = '<div class="widget w-small">'+head(p0)+'<div style="margin-top:8px">'+graphSVG(p0, 12, {labels:false, cell:9, gap:2.4, h:82})+'</div><div style="margin-top:6px;display:flex;align-items:baseline;gap:6px"><span class="big">'+p0.stats.total+'</span><span class="sub">this year</span></div></div>';
+  var small = '<div class="widget w-small">'+head(p0)+'<div style="margin-top:8px">'+graphSVG(p0, 12, {labels:false, cell:9, gap:2.4, h:82})+'</div><div style="margin-top:6px;display:flex;align-items:baseline;gap:6px"><span class="big">'+p0.stats.total+'</span><span class="sub">past year</span></div></div>';
   var mi = state.widgetIdx.medium % profiles.length, li = state.widgetIdx.large % profiles.length;
-  var medium = '<div class="widget w-medium">'+head(pm)+arrows("medium")+'<div style="margin-top:8px">'+graphSVG(pm, 20, {labels:false, cell:12, gap:3, h:80})+'</div><div class="wstats"><span><b>'+pm.stats.total+'</b> this year</span><span><b>'+pm.stats.current+'</b> day streak</span><span>Best <b>'+pm.stats.best.count+'</b></span></div>'+wdots(mi)+'</div>';
-  var large = '<div class="widget w-large">'+head(pl)+arrows("large")+'<div style="margin-top:10px">'+graphSVG(pl, 26, {labels:true, cell:9.5, gap:2.6, h:118})+'</div><div class="wstats"><span><b>'+pl.stats.total+'</b> this year</span><span><b>'+pl.stats.current+'</b> current</span><span><b>'+pl.stats.longest+'</b> longest</span></div><div style="margin-top:4px;height:172px">'+(pl.quad ? '<div style="width:184px;margin:0 auto">'+quadSVG(pl.quad, 184)+'</div>' : '<div class="quad-empty" style="height:150px;margin-top:8px">Activity overview is off for this profile.</div>')+'</div>'+wdots(li)+'</div>';
+  var medium = '<div class="widget w-medium">'+head(pm)+arrows("medium")+'<div style="margin-top:8px">'+graphSVG(pm, 20, {labels:false, cell:12, gap:3, h:80})+'</div><div class="wstats"><span><b>'+pm.stats.total+'</b> past year</span><span><b>'+pm.stats.current+'</b> '+streakWords(pm.stats)+'</span><span>Best <b>'+pm.stats.best.count+'</b></span></div>'+wdots(mi)+'</div>';
+  var large = '<div class="widget w-large">'+head(pl)+arrows("large")+'<div style="margin-top:10px">'+graphSVG(pl, 26, {labels:true, cell:9.5, gap:2.6, h:118})+'</div><div class="wstats"><span><b>'+pl.stats.total+'</b> past year</span><span><b>'+pl.stats.current+'</b> '+streakWords(pl.stats)+'</span><span><b>'+pl.stats.longest+'</b> longest</span></div><div style="margin-top:4px;height:172px">'+(pl.quad ? '<div style="width:184px;margin:0 auto">'+quadSVG(pl.quad, 184)+'</div>' : '<div class="quad-empty" style="height:150px;margin-top:8px">Activity overview is off for this profile.</div>')+'</div>'+wdots(li)+'</div>';
   document.getElementById("widgets").innerHTML =
     '<div class="wcol">'+small+'<span class="wcap">Small</span></div>'+
     '<div class="wcol">'+medium+'<span class="wcap">Medium · ◀ ▶ flips favorites</span></div>'+
@@ -755,7 +778,10 @@ document.addEventListener("submit", function(e){
   profiles.push(makeProfile({user:u, name:u, days:steadyDays(u, .2 + r*.6, 4 + Math.floor(r*10), .5 + r), quad: r > .3 ? (function(){ var a=10+Math.floor(r*60), b2=Math.floor((100-a)*.4), c2=Math.floor((100-a)*.4); return {commits:a, issues:b2, prs:c2, review:100-a-b2-c2}; })() : null, quadReason: r > .3 ? null : "token", note:"Demo data for @"+u}));
   state.adding = false; state.addErr = ""; state.idx = profiles.length-1; renderAll();
 });
-document.addEventListener("change", function(e){ if (e.target.id === "intv") state.interval = e.target.value; });
+document.addEventListener("change", function(e){
+  if (e.target.id === "intv") state.interval = e.target.value;
+  if (e.target.id === "mbnum"){ state.mbNumber = e.target.value; renderIcon(); }
+});
 
 /* swipe: drag, trackpad wheel, keyboard */
 var drag = null;

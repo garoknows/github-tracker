@@ -35,8 +35,9 @@
 - **Stats** — total for the last year, best day, average per day, current streak and longest streak.
 - **Activity overview** — GitHub's four-way chart of Commits, Issues, Pull requests and Code review, read from the public profile. No token needed for most people.
 - **Favorites** — keep up to 10 people and flip between them with a two-finger swipe, the ← → keys or the ◀ ▶ buttons. Your Primary profile shows as a 7-day strip right in the menu bar.
+- **Number in the menu bar (optional)** — Settings → Number in menu bar shows your last 7 days, your current streak or your last-year total next to the icon. It's off unless you turn it on.
 - **Widgets** — Small, Medium and Large, on the desktop or in Notification Center, with ◀ ▶ buttons to cycle through up to 5 people.
-- **Works offline** — shows the last data it saw, with "Offline, showing data from 2 hr ago."
+- **Works offline** — shows the last data it saw, with "Offline, showing data from 2 hr ago." If GitHub changes its page, it says so instead of guessing.
 - **Themes** — GitHub Green, Halloween, Ocean and Mono, in light and dark.
 
 <p align="center">
@@ -56,6 +57,13 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
     <img src="docs/screenshots/settings-light.png" height="382" alt="Settings">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/menubar-number-dark.png">
+    <img src="docs/screenshots/menubar-number-light.png" width="380" alt="The menu bar: the 7-day strip with the number 93 next to it, set to Last year total">
   </picture>
 </p>
 
@@ -104,13 +112,19 @@ Yes. The graph comes from the same public page GitHub uses for profiles, and the
 macOS widgets only support clicks on buttons, so they have ◀ ▶ instead. Swiping works in the menu bar popover.
 
 **Can the widgets use my app favorites?**
-Not in this free build. Sharing settings between an app and its widgets needs an Apple Developer signing team (App Groups). For now each widget is set up with Edit Widget, which takes about 10 seconds.
+Yes. Widgets show your app favorites automatically. To show different people in one widget, right-click it → Edit Widget, turn off **Use my app favorites** and type up to 5 usernames.
+
+**What does the number next to the menu bar icon mean?**
+It's off unless you choose one in Settings → Number in menu bar: **Last 7 days** (the same days as the 7-day strip), **Current streak** (days in a row) or **Last year total**. It always describes your Primary profile and matches the card at any hour. Above 9,999 it's shortened, like 12.3k. Offline it keeps the last number it saw.
+
+**Why does the streak say "through" a date instead of "today"?**
+GitHub groups contributions by UTC day, so in the Americas its new day starts in the late afternoon. The streak shows the date of its last active day the way GitHub's own graph labels it, for example "through Nov 12", so it's right at any hour.
 
 **How often does it refresh?**
 Every 30 minutes by default (15 min to 3 hr in Settings). Widgets refresh about every 30 minutes. Refresh in the popover updates right away.
 
 **Something broke after GitHub changed its site.**
-Please [open an issue](https://github.com/garoknows/github-tracker/issues). All of GitHub's page format is handled in one place with saved test pages, so fixes are quick. See [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md).
+The card says "GitHub changed its page" when that happens, and keeps your last good data instead of guessing. Please [open an issue](https://github.com/garoknows/github-tracker/issues). All of GitHub's page format is handled in one place with saved test pages, so fixes are quick. See [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md).
 
 ## Privacy
 

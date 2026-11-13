@@ -2,6 +2,8 @@
 
 Tracker for GitHub reads only public data from GitHub. This page records exactly what it calls, what was verified, and how it degrades when something changes. Everything was checked live on **October 26, 2026** without logging in.
 
+GitHub groups public contributions by UTC day, so its newest day starts in the late afternoon in the Americas (5 pm in Las Vegas in summer, 4 pm in winter), and the app follows GitHub's days: streaks are labelled with GitHub's date ("through Nov 12") and the menu bar number counts whole days ("Last 7 days"), never "today".
+
 | What | Where it comes from | Login? | Code |
 |---|---|---|---|
 | Daily contributions (the graph) | `https://github.com/users/{name}/contributions` (HTML) | No | `CalendarParser` |
@@ -21,7 +23,7 @@ Every request sends `User-Agent: TrackerForGitHub/1.0 (+https://github.com/garok
 
 It covers 366 or 367 days, starting on a Sunday about a year ago, so the graph always has 53 columns. A user that doesn't exist returns **HTTP 404** with the body `Not Found`.
 
-**Dates are UTC.** Without a login, GitHub groups contributions by UTC date, not by your time zone. In Las Vegas (UTC−7 in summer, UTC−8 in winter) a new UTC day starts at 5 pm or 4 pm, so in the evening GitHub's last square is already "tomorrow" by your clock, and contributions you make then land on it. GitHub's heading total includes that square, so the app treats it as today: the Total tile, best day, average, current streak, the widget and the 7-day menu bar strip all count it, and they always agree with the heading total. GitHub is never more than one day ahead of any time zone, so a date further ahead is ignored. East of UTC (for example Tokyo in the early morning) the opposite happens: GitHub's last square is your yesterday, and the streak reads "ends yesterday" until GitHub's day catches up.
+**Dates are UTC.** Without a login, GitHub groups contributions by UTC date, not by your time zone. In Las Vegas (UTC−7 in summer, UTC−8 in winter) a new UTC day starts at 5 pm or 4 pm, so in the evening GitHub's last square is already "tomorrow" by your clock, and contributions you make then land on it. GitHub's heading total includes that square, so the app treats it as today: the Total tile, best day, average, current streak, the widget and the 7-day menu bar strip all count it, and they always agree with the heading total. GitHub is never more than one day ahead of any time zone, so a date further ahead is ignored. East of UTC (for example Tokyo in the early morning) the opposite happens: GitHub's last square is your yesterday, and the streak label shows that date (for example "through Oct 26") until GitHub's day catches up.
 
 The parser doesn't depend on attribute order. The intensity level comes from GitHub's own `data-level`, so the colors match github.com exactly.
 
@@ -79,9 +81,9 @@ Verification was done with `gh api graphql` on the developer's machine only. No 
 ## 4. Limits and politeness
 
 - **Profiles (REST):** 60 requests/hour without a token. Name and avatar are cached for 24 hours.
-- **HTML pages:** fetched once per favorite per refresh (default every 30 minutes), one favorite at a time with a short pause.
+- **HTML pages:** fetched once per favorite per refresh (default every 30 minutes), one favorite at a time with a short pause. A refresh asked for while one is already running (the timer and the Refresh button, say) waits for it instead of downloading again, and adding a favorite downloads its graph once.
 - **Rate limits:** on `429`, or `403` with `x-ratelimit-remaining: 0`, the client stops calling that host until `Retry-After` / `x-ratelimit-reset`, or backs off 1 → 2 → 4 … 60 minutes. While paused it sends nothing.
-- **Offline:** the last good data per profile is cached on disk and shown with "Offline, showing data from 2 hr ago."
+- **Offline:** the last good data per profile is cached on disk and shown with "Offline, showing data from 2 hr ago." The note names the real cause when it isn't the network: "Paused by GitHub", "GitHub changed its page", or "GitHub has no user named @name anymore".
 
 ## 5. If GitHub changes something
 
@@ -90,3 +92,5 @@ Verification was done with `gh api graphql` on the developer's machine only. No 
 3. Fix `CalendarParser` or `OverviewParser`; nothing else reads GitHub's markup.
 
 Users with a token keep working through GraphQL in the meantime.
+
+**If only the hover text changes** (the day squares are still there but their counts can't be read), the app never guesses one contribution per colored square. Without a token it shows the last good saved data with "GitHub changed its page, daily counts may be off. Showing saved data from …". With nothing saved yet, it shows the colors with estimated counts and "GitHub changed its page, daily counts may be off.", and never saves those estimates. With a token it reads the real counts from GraphQL.
