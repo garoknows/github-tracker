@@ -79,9 +79,9 @@ Verification was done with `gh api graphql` on the developer's machine only. No 
 ## 4. Limits and politeness
 
 - **Profiles (REST):** 60 requests/hour without a token. Name and avatar are cached for 24 hours.
-- **HTML pages:** fetched once per favorite per refresh (default every 30 minutes), one favorite at a time with a short pause.
+- **HTML pages:** fetched once per favorite per refresh (default every 30 minutes), one favorite at a time with a short pause. A refresh asked for while one is already running (the timer and the Refresh button, say) waits for it instead of downloading again, and adding a favorite downloads its graph once.
 - **Rate limits:** on `429`, or `403` with `x-ratelimit-remaining: 0`, the client stops calling that host until `Retry-After` / `x-ratelimit-reset`, or backs off 1 → 2 → 4 … 60 minutes. While paused it sends nothing.
-- **Offline:** the last good data per profile is cached on disk and shown with "Offline, showing data from 2 hr ago."
+- **Offline:** the last good data per profile is cached on disk and shown with "Offline, showing data from 2 hr ago." The note names the real cause when it isn't the network: "Paused by GitHub", "GitHub changed its page", or "GitHub has no user named @name anymore".
 
 ## 5. If GitHub changes something
 
@@ -90,3 +90,5 @@ Verification was done with `gh api graphql` on the developer's machine only. No 
 3. Fix `CalendarParser` or `OverviewParser`; nothing else reads GitHub's markup.
 
 Users with a token keep working through GraphQL in the meantime.
+
+**If only the hover text changes** (the day squares are still there but their counts can't be read), the app never guesses one contribution per colored square. Without a token it shows the last good saved data with "GitHub changed its page, daily counts may be off. Showing saved data from …". With nothing saved yet, it shows the colors with estimated counts and "GitHub changed its page, daily counts may be off.", and never saves those estimates. With a token it reads the real counts from GraphQL.

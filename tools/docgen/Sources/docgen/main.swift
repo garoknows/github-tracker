@@ -185,8 +185,11 @@ struct BlockView: View {
                 .overlay(alignment: .leading) { Rectangle().fill(Style.scale[3]).frame(width: 3) }
         case .image(let path, let alt):
             if let image = NSImage(contentsOf: docs.appendingPathComponent(path)) {
-                Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 340, maxHeight: 230)
+                // Sized to the picture's own shape (at most 340 × 230), so wide pictures get no empty band.
+                let aspect = image.size.width / max(image.size.height, 1)
+                let width = min(340, 230 * aspect)
+                Image(nsImage: image).resizable()
+                    .frame(width: width, height: width / aspect)
                     .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Style.border))
                     .frame(maxWidth: .infinity)
                     .accessibilityLabel(alt)
