@@ -18,6 +18,8 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
     private var routes: [(String, Reply)] = []
     private(set) var requests: [URLRequest] = []
     var offline = false
+    private var inFlight: [String: Int] = [:]
+    private var peaks: [String: Int] = [:]
 
     func on(_ urlContains: String, _ reply: Reply) {
         lock.withLock { routes.insert((urlContains, reply), at: 0) }
@@ -29,8 +31,11 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
             let url = request.url!.absoluteString
             return (routes.first { url.contains($0.0) }?.1, offline)
         }
+        let route = lock.withLock { routes.first { request.url!.absoluteString.contains($0.0) }?.0 ?? "unmatched" }
         if isOffline { throw URLError(.notConnectedToInternet) }
         let r = reply ?? Reply(status: 404, body: "Not Found")
+        lock.withLock { inFlight[route, default: 0] += 1; peaks[route] = max(peaks[route] ?? 0, inFlight[route]!) }
+        defer { lock.withLock { inFlight[route, default: 0] -= 1 } }
         if r.delay > 0 { try await Task.sleep(for: .seconds(r.delay)) }
         if let failure = r.failure { throw URLError(failure) }
         let response = HTTPURLResponse(url: request.url!, statusCode: r.status, httpVersion: nil, headerFields: r.headers)!
@@ -38,6 +43,9 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
     }
 
     var urls: [String] { lock.withLock { requests.map { $0.url!.absoluteString } } }
+    func count(_ urlContains: String) -> Int { urls.filter { $0.contains(urlContains) }.count }
+    /// The most requests to one route (as passed to `on`) that were ever waiting at the same time.
+    func peakInFlight(_ route: String) -> Int { lock.withLock { peaks[route] ?? 0 } }
 }
 
 final class Clock: @unchecked Sendable {
@@ -56,7 +64,7 @@ func tempCache() -> DiskCache {
 func stubbedGaro(_ t: FakeTransport) throws {
     t.on("/users/garoknows/contributions", .init(body: try fixture("calendar_active")))
     t.on("tab=contributions", .init(body: try fixture("overview_on")))
-    t.on("api.github.com/users/garoknows", .init(body: #"{"login":"garoknows","name":"Garo","avatar_url":"https://avatars.githubusercontent.com/u/1","html_url":"https://github.com/garoknows"}"#))
+    t.on("api.github.com/users/garoknows", .init(body: #"{"login":"garoknows","name":"Pim Quarrelwick","avatar_url":"https://avatars.githubusercontent.com/u/1","html_url":"https://github.com/garoknows"}"#))
 }
 
 @Suite("Client and loader")
@@ -68,7 +76,7 @@ struct NetworkTests {
         let result = await loader.load("garoknows")
         #expect(result.error == nil)
         #expect(result.snapshot?.calendar.total == 93)
-        #expect(result.snapshot?.profile.displayName == "Garo")
+        #expect(result.snapshot?.profile.displayName == "Pim Quarrelwick")
         #expect(result.snapshot?.overview.overview?.commits == 53)
         for r in t.requests {
             #expect(r.value(forHTTPHeaderField: "User-Agent") == GitHubClient.userAgent)

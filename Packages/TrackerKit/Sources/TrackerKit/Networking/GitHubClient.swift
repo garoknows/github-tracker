@@ -8,6 +8,8 @@ public enum TrackerError: Error, Equatable, Sendable, LocalizedError {
     case invalidToken
     case server(status: Int)
     case markupChanged
+    /// The graph loaded, but GitHub's hover text with the daily counts couldn't be read.
+    case countsUnreadable
     case blockedHost(String)
 
     public var errorDescription: String? {
@@ -25,6 +27,8 @@ public enum TrackerError: Error, Equatable, Sendable, LocalizedError {
             return "GitHub returned an error (\(status)). Try Refresh in a few minutes."
         case .markupChanged:
             return "GitHub changed its page layout. Add a token in Settings as a workaround, and check for an app update."
+        case .countsUnreadable:
+            return "STUB"
         case .blockedHost(let host):
             return "Blocked a request to \(host). Tracker for GitHub only talks to GitHub."
         }

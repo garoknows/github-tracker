@@ -10,9 +10,13 @@ public enum CalendarParser {
     public enum Failure: Error, Equatable, Sendable {
         /// The HTML had no day cells; GitHub probably changed its markup.
         case noDays
+        /// Colored days are there, but their hover text (the per-day counts) isn't: GitHub changed it.
+        case countsUnreadable
     }
 
-    public static func parse(_ html: String) throws(Failure) -> ContributionCalendar {
+    /// - Parameter estimateMissingCounts: when the hover text is missing, guess 1 per colored day instead
+    ///   of throwing `countsUnreadable`. Only for showing something when nothing better is saved.
+    public static func parse(_ html: String, estimateMissingCounts: Bool = false) throws(Failure) -> ContributionCalendar {
         var countsByID: [String: Int] = [:]
         for match in tooltipRegex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
             guard let id = html.substring(match.range(at: 1)),

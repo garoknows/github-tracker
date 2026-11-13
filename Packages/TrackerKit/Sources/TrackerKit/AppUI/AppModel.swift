@@ -51,6 +51,10 @@ public struct Preferences {
         get { RefreshInterval(rawValue: defaults.integer(forKey: "interval")) ?? .thirty }
         nonmutating set { defaults.set(newValue.rawValue, forKey: "interval") }
     }
+    var menuBarNumber: MenuBarNumber {
+        get { .off } // STUB
+        nonmutating set { }
+    }
 }
 
 /// Everything the menu bar app shows and does. The first favorite is the Primary one.
@@ -71,6 +75,7 @@ public final class AppModel {
     public var appearance: Appearance { didSet { prefs.appearance = appearance; onChange?() } }
     public var iconStyle: MenuBarIconStyle { didSet { prefs.iconStyle = iconStyle; onChange?() } }
     public var interval: RefreshInterval { didSet { prefs.interval = interval; scheduleRefresh() } }
+    public var menuBarNumber: MenuBarNumber = .off // STUB
 
     public var tokenStatus: String?
     public private(set) var hasToken: Bool

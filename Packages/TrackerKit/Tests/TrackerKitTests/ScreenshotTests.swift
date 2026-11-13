@@ -19,7 +19,7 @@ struct ScreenshotTests {
 
     static func garo() throws -> ProfileSnapshot {
         ProfileSnapshot(
-            profile: GitHubProfile(login: "garoknows", name: "Garo", avatarURL: nil),
+            profile: GitHubProfile(login: "garoknows", name: nil, avatarURL: nil),
             calendar: try CalendarParser.parse(try fixture("calendar_active")),
             overview: OverviewParser.parse(try fixture("overview_on")),
             fetchedAt: fetched)

@@ -7,11 +7,15 @@ public struct LoadResult: Sendable {
     public let error: TrackerError?
     /// Set when the Activity overview couldn't be refreshed; `snapshot` then carries the last good one.
     public let overviewError: TrackerError?
+    /// True when `snapshot` holds daily counts guessed from the colors, because GitHub's hover text
+    /// couldn't be read and nothing better was saved. Never written to the disk cache.
+    public let estimated: Bool
 
-    public init(snapshot: ProfileSnapshot?, error: TrackerError?, overviewError: TrackerError? = nil) {
+    public init(snapshot: ProfileSnapshot?, error: TrackerError?, overviewError: TrackerError? = nil, estimated: Bool = false) {
         self.snapshot = snapshot
         self.error = error
         self.overviewError = overviewError
+        self.estimated = estimated
     }
 
     public var isOffline: Bool { error != nil && snapshot != nil }
