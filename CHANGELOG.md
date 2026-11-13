@@ -72,6 +72,7 @@ First release.
 - Color themes (GitHub Green, Halloween, Ocean, Mono), System/Light/Dark appearance, Launch at login, Check for updates.
 - VoiceOver labels for every graph day and the quadrant chart.
 
+[1.2.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.2.0
 [1.1.1]: https://github.com/garoknows/github-tracker/releases/tag/v1.1.1
 [1.1.0]: https://github.com/garoknows/github-tracker/releases/tag/v1.1.0
 [1.0.1]: https://github.com/garoknows/github-tracker/releases/tag/v1.0.1
