@@ -2,17 +2,22 @@ import AppKit
 
 /// The optional number next to the menu bar icon (Settings → Number in menu bar). Off unless chosen.
 ///
-/// It always describes the Primary profile and uses the same "today" as the 7-day strip
+/// It always describes the Primary profile and uses the same days as the 7-day strip
 /// (`ContributionCalendar.today(forLocal:)`), so it matches the card at any hour.
 public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
-    case off, today, lastSevenDays, currentStreak, lastYear // STUB
+    case off, lastSevenDays, currentStreak, lastYear
+
+    /// Reads a saved choice. 1.2.0 test builds had "today" (GitHub's newest UTC day, which drops to 0
+    /// every afternoon in the Americas); it becomes Last 7 days.
+    public init?(saved: String) {
+        self.init(rawValue: saved == "today" ? MenuBarNumber.lastSevenDays.rawValue : saved)
+    }
 
     public var id: String { rawValue }
 
     public var name: String {
         switch self {
         case .off: "Off"
-        case .today: "Today"
         case .lastSevenDays: "Last 7 days"
         case .currentStreak: "Current streak"
         case .lastYear: "Last year total"
@@ -26,9 +31,8 @@ public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .off:
             return nil
-        case .today, .lastSevenDays:
-            let today = calendar.today(forLocal: local)
-            return calendar.days.last { $0.date == today }?.count ?? 0
+        case .lastSevenDays:
+            return MenuBarIcon.stripDays(calendar, today: local).reduce(0) { $0 + $1.count }
         case .currentStreak:
             return ContributionStats(calendar: calendar, today: local).currentStreak.length
         case .lastYear:
@@ -50,21 +54,26 @@ public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
         return shown.formatted(.number.precision(.fractionLength(0...1)).grouping(.never).locale(locale)) + suffix
     }
 
-    /// What VoiceOver reads for the menu bar item, with the full number rather than "12.3k".
-    public func accessibilityLabel(value: Int?, locale: Locale = .current) -> String {
+    /// What VoiceOver reads for the menu bar item, with the full number rather than "12.3k", and the
+    /// streak's GitHub date ("current streak 7 days, through Oct 27").
+    public func accessibilityLabel(for snapshot: ProfileSnapshot?, today: CivilDate, locale: Locale = .current) -> String {
         let app = "Tracker for GitHub"
-        guard let value else { return app }
+        guard let calendar = snapshot?.calendar, let value = value(for: snapshot, today: today) else { return app }
         let n = value.formatted(.number.locale(locale))
+        let contributions = value == 1 ? "1 contribution" : "\(n) contributions"
         switch self {
-        case .off: return app
-        case .today, .lastSevenDays: return "\(app), \(value == 1 ? "1 contribution" : "\(n) contributions") today"
-        case .currentStreak: return "\(app), current streak \(value == 1 ? "1 day" : "\(n) days")"
-        case .lastYear: return "\(app), \(value == 1 ? "1 contribution" : "\(n) contributions") in the last year"
+        case .off:
+            return app
+        case .lastSevenDays:
+            return "\(app), \(contributions) in the last 7 days"
+        case .currentStreak:
+            let streak = ContributionStats(calendar: calendar, today: today).currentStreak
+            let days = "current streak \(value == 1 ? "1 day" : "\(n) days")"
+            return streak.through.map { "\(app), \(days), \($0)" } ?? "\(app), \(days)"
+        case .lastYear:
+            return "\(app), \(contributions) in the last year"
         }
     }
-
-    /// STUB
-    public func accessibilityLabel(for snapshot: ProfileSnapshot?, today: CivilDate, locale: Locale = .current) -> String { "" }
 
     /// The menu bar's own font, with digits all the same width so nothing shifts as the number changes.
     public static func font() -> NSFont {

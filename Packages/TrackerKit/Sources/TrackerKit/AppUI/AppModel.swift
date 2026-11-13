@@ -53,7 +53,7 @@ public struct Preferences {
     }
     /// Off unless chosen, so updating from 1.1.1 (which has no such key) changes nothing.
     var menuBarNumber: MenuBarNumber {
-        get { defaults.string(forKey: "menuBarNumber").flatMap(MenuBarNumber.init) ?? .off }
+        get { defaults.string(forKey: "menuBarNumber").flatMap(MenuBarNumber.init(saved:)) ?? .off }
         nonmutating set { defaults.set(newValue.rawValue, forKey: "menuBarNumber") }
     }
 }

@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         button.font = MenuBarNumber.font()
         button.title = title ?? ""
         button.imagePosition = title == nil ? .imageOnly : .imageLeading
-        button.setAccessibilityLabel(model.menuBarNumber.accessibilityLabel(value: model.menuBarNumber.value(for: snapshot, today: today)))
+        button.setAccessibilityLabel(model.menuBarNumber.accessibilityLabel(for: snapshot, today: today))
     }
 
     @objc private func togglePopover() {

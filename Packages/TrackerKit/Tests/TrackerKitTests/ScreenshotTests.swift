@@ -93,6 +93,7 @@ struct ScreenshotTests {
         let m = try model(favorites: ["garoknows", "mira-builds", "nightshift-dev"])
         try Self.render(PopoverView(model: m).background(Self.popoverBackground(dark)), name: "popover-full", dark: dark)
         m.screen = .settings
+        m.menuBarNumber = .lastSevenDays // show the new setting with a choice made
         try Self.render(PopoverView(model: m).background(Self.popoverBackground(dark)), name: "settings", dark: dark)
         let empty = try model(favorites: [])
         try Self.render(PopoverView(model: empty).background(Self.popoverBackground(dark)), name: "welcome", dark: dark)
