@@ -56,10 +56,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     @objc private func appearanceChanged() { updateIcon() }
 
     private func updateIcon() {
-        let dark = statusItem.button?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        statusItem.button?.image = MenuBarIcon.image(style: model.iconStyle, snapshot: model.primarySnapshot,
-                                                    theme: model.theme, dark: dark)
-        statusItem.button?.toolTip = model.primary.map { "Tracker for GitHub: @\($0)" } ?? "Tracker for GitHub"
+        guard let button = statusItem.button else { return }
+        let dark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let snapshot = model.primarySnapshot
+        let today = CivilDate(Date())
+        button.image = MenuBarIcon.image(style: model.iconStyle, snapshot: snapshot, theme: model.theme, dark: dark)
+        button.toolTip = model.primary.map { "Tracker for GitHub: @\($0)" } ?? "Tracker for GitHub"
+
+        // Optional number next to the icon: same person and same "today" as the strip.
+        let title = model.menuBarNumber.title(for: snapshot, today: today)
+        button.font = MenuBarNumber.font()
+        button.title = title ?? ""
+        button.imagePosition = title == nil ? .imageOnly : .imageLeading
+        button.setAccessibilityLabel(model.menuBarNumber.accessibilityLabel(value: model.menuBarNumber.value(for: snapshot, today: today)))
     }
 
     @objc private func togglePopover() {

@@ -28,7 +28,7 @@ public enum TrackerError: Error, Equatable, Sendable, LocalizedError {
         case .markupChanged:
             return "GitHub changed its page layout. Add a token in Settings as a workaround, and check for an app update."
         case .countsUnreadable:
-            return "STUB"
+            return "GitHub changed its page, so daily counts can't be read. Add a token in Settings as a workaround, and check for an app update."
         case .blockedHost(let host):
             return "Blocked a request to \(host). Tracker for GitHub only talks to GitHub."
         }

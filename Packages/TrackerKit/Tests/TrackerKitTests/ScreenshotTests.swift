@@ -128,6 +128,35 @@ struct ScreenshotTests {
         try Self.render(view, name: "menubar-icons", dark: dark)
     }
 
+    /// The menu bar with Settings → Number in menu bar set to "Last year total", for the README.
+    @Test(arguments: [false, true])
+    func menuBarWithNumber(dark: Bool) throws {
+        let snap = try Self.garo()
+        let strip = MenuBarIcon.image(style: .strip, snapshot: snap, theme: .green, dark: dark, today: Self.today)
+        let title = MenuBarNumber.lastYear.title(for: snap, today: Self.today, locale: Locale(identifier: "en_US")) ?? ""
+        let fg: Color = dark ? .white : .black
+        let bar = HStack(spacing: 16) {
+            Spacer()
+            HStack(spacing: 4) {
+                Image(nsImage: strip)
+                Text(title).font(Font(MenuBarNumber.font()))
+            }
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(RoundedRectangle(cornerRadius: 5).fill(fg.opacity(0.12)))
+            Image(systemName: "wifi")
+            Image(systemName: "battery.75percent")
+            Text("Mon Oct 26  9:41 AM")
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(fg)
+        .padding(.horizontal, 12)
+        .frame(width: 380, height: 26)
+        .background(dark ? Color(hex: 0x1f2328) : Color(hex: 0xf6f8fa))
+        // Drawn at twice the size so it stays sharp in the README.
+        let big = bar.scaleEffect(2, anchor: .topLeading).frame(width: 760, height: 52, alignment: .topLeading)
+        try Self.render(big, name: "menubar-number", dark: dark, size: CGSize(width: 760, height: 52))
+    }
+
     @Test func themes() throws {
         for dark in [false, true] {
             let view = VStack(alignment: .leading, spacing: 10) {

@@ -38,7 +38,7 @@ public struct SettingsView: View {
 
                 section("GitHub token (optional)")
                 HStack {
-                    Text("Read-only token").frame(width: 120, alignment: .leading)
+                    Text("Read-only token").frame(width: 140, alignment: .leading)
                     SecureField(model.hasToken ? "Saved in Keychain" : "github_pat_…", text: $token)
                         .textFieldStyle(.roundedBorder)
                         .accessibilityLabel("GitHub token")
@@ -62,7 +62,7 @@ public struct SettingsView: View {
                     Picker("Refresh every", selection: $model.interval) {
                         ForEach(RefreshInterval.allCases) { Text($0.name).tag($0) }
                     }
-                    .labelsHidden().frame(width: 150)
+                    .labelsHidden().frame(width: 150, alignment: .leading)
                 }
                 row("Launch at login") {
                     Toggle("Launch at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
@@ -74,6 +74,12 @@ public struct SettingsView: View {
                         ForEach(MenuBarIconStyle.allCases) { Text($0.name).tag($0) }
                     }
                     .pickerStyle(.segmented).labelsHidden().frame(width: 220)
+                }
+                row("Number in menu bar") {
+                    Picker("Number in menu bar", selection: $model.menuBarNumber) {
+                        ForEach(MenuBarNumber.allCases) { Text($0.name).tag($0) }
+                    }
+                    .labelsHidden().frame(width: 150, alignment: .leading)
                 }
                 row("Appearance") {
                     Picker("Appearance", selection: $model.appearance) {
@@ -174,7 +180,7 @@ public struct SettingsView: View {
 
     private func row<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         HStack {
-            Text(label).frame(width: 120, alignment: .leading)
+            Text(label).frame(width: 140, alignment: .leading)
             content()
             Spacer()
         }

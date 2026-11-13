@@ -51,9 +51,10 @@ public struct Preferences {
         get { RefreshInterval(rawValue: defaults.integer(forKey: "interval")) ?? .thirty }
         nonmutating set { defaults.set(newValue.rawValue, forKey: "interval") }
     }
+    /// Off unless chosen, so updating from 1.1.1 (which has no such key) changes nothing.
     var menuBarNumber: MenuBarNumber {
-        get { .off } // STUB
-        nonmutating set { }
+        get { defaults.string(forKey: "menuBarNumber").flatMap(MenuBarNumber.init) ?? .off }
+        nonmutating set { defaults.set(newValue.rawValue, forKey: "menuBarNumber") }
     }
 }
 
@@ -75,7 +76,7 @@ public final class AppModel {
     public var appearance: Appearance { didSet { prefs.appearance = appearance; onChange?() } }
     public var iconStyle: MenuBarIconStyle { didSet { prefs.iconStyle = iconStyle; onChange?() } }
     public var interval: RefreshInterval { didSet { prefs.interval = interval; scheduleRefresh() } }
-    public var menuBarNumber: MenuBarNumber = .off // STUB
+    public var menuBarNumber: MenuBarNumber { didSet { prefs.menuBarNumber = menuBarNumber; onChange?() } }
 
     public var tokenStatus: String?
     public private(set) var hasToken: Bool
@@ -90,6 +91,10 @@ public final class AppModel {
     /// Tells widgets to redraw (favorites or token changed). Tests pass their own.
     @ObservationIgnored let reloadWidgets: @MainActor () -> Void
     @ObservationIgnored private var timer: Timer?
+    /// The load running for each profile, so a second refresh waits for it instead of downloading again.
+    @ObservationIgnored private var inFlight: [String: Task<Void, Never>] = [:]
+    /// Profiles whose running load started before the token changed, so they load once more after it.
+    @ObservationIgnored private var loadAgain: Set<String> = []
 
     public convenience init(loader: ProfileLoader = ProfileLoader(), prefs: Preferences = .forApp()) {
         self.init(loader: loader, prefs: prefs, reloadWidgets: { WidgetCenter.shared.reloadAllTimelines() })
@@ -104,6 +109,7 @@ public final class AppModel {
         appearance = prefs.appearance
         iconStyle = prefs.iconStyle
         interval = prefs.interval
+        menuBarNumber = prefs.menuBarNumber
         // The first read after updating from 1.1.0 moves the token where the widget can read it.
         hasToken = loader.tokens.read() != nil
         if hasToken { reloadWidgets() }
@@ -124,7 +130,8 @@ public final class AppModel {
     public func next() { if !favorites.isEmpty { index = (index + 1) % favorites.count } }
     public func previous() { if !favorites.isEmpty { index = (index - 1 + favorites.count) % favorites.count } }
 
-    /// "Offline, showing data from 2 hr ago." when the last refresh failed but we have saved data.
+    /// The note under a card when the last refresh didn't fully work, saying what actually happened.
+    /// For example "Offline, showing data from 2 hr ago." Nil when everything is fresh.
     public func offlineMessage(for login: String, now: Date = Date()) -> String? {
         guard let r = results[login], let snap = r.snapshot else { return nil }
         guard let error = r.error else {
@@ -132,8 +139,20 @@ public final class AppModel {
             guard r.overviewError != nil, snap.overview.overview != nil else { return nil }
             return "Couldn't refresh the Activity overview, showing the last saved one."
         }
-        if case .rateLimited = error { return "Paused by GitHub, showing data from \(Format.age(since: snap.fetchedAt, now: now))." }
-        return "Offline, showing data from \(Format.age(since: snap.fetchedAt, now: now))."
+        let age = Format.age(since: snap.fetchedAt, now: now)
+        switch error {
+        case .rateLimited:
+            return "Paused by GitHub, showing data from \(age)."
+        case .countsUnreadable:
+            return r.estimated ? "GitHub changed its page, daily counts may be off."
+                : "GitHub changed its page, daily counts may be off. Showing saved data from \(age)."
+        case .markupChanged:
+            return "GitHub changed its page, showing data from \(age)."
+        case .userNotFound(let gone):
+            return "GitHub has no user named @\(gone) anymore. Showing saved data from \(age)."
+        default:
+            return "Offline, showing data from \(age)."
+        }
     }
 
     // MARK: Favorites
@@ -149,17 +168,22 @@ public final class AppModel {
         guard favorites.count < Self.maxFavorites else {
             return "You can keep up to \(Self.maxFavorites) favorites. Remove one in Settings first."
         }
-        do {
-            try await loader.validate(login)
-        } catch let e as TrackerError {
-            return e.errorDescription
-        } catch {
-            return TrackerError.offline.errorDescription
+        // One download both checks the name exists and fills the card.
+        let result = await loader.load(login)
+        if result.snapshot == nil, result.error != .markupChanged {
+            // .markupChanged means the person exists but GitHub's page changed: add them and show why.
+            return (result.error ?? .offline).errorDescription
+        }
+        // Added twice while the first add was still loading.
+        if let existing = favorites.firstIndex(where: { $0.caseInsensitiveCompare(login) == .orderedSame }) {
+            index = existing
+            return nil
         }
         favorites.append(login)
         saveFavorites()
         index = favorites.count - 1
-        await refresh(login)
+        results[login] = result
+        onChange?()
         return nil
     }
 
@@ -207,22 +231,48 @@ public final class AppModel {
     }
 
     public func refresh(_ login: String) async {
-        refreshing.insert(login)
-        let result = await loader.load(login)
-        refreshing.remove(login)
-        // Removed while loading: don't bring it back (the load also re-saved its cache file).
-        guard favorites.contains(login) else {
-            loader.cache.remove(login)
+        await refresh(login, afterChange: false)
+    }
+
+    /// One load per profile at a time. A refresh asked for while one is running (the timer and the
+    /// Refresh button, say) waits for it instead of downloading the same data again. `afterChange` means
+    /// the token changed, so a load that was already running is out of date and one more runs after it.
+    func refresh(_ login: String, afterChange: Bool) async {
+        if let running = inFlight[login] {
+            if afterChange { loadAgain.insert(login) }
+            await running.value
             return
         }
-        results[login] = result
-        onChange?()
+        refreshing.insert(login)
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            repeat {
+                loadAgain.remove(login)
+                let result = await loader.load(login)
+                // Removed while loading: don't bring it back (the load also re-saved its cache file).
+                guard favorites.contains(login) else {
+                    loader.cache.remove(login)
+                    break
+                }
+                results[login] = result
+                onChange?()
+            } while loadAgain.contains(login)
+            loadAgain.remove(login)
+            refreshing.remove(login)
+            inFlight[login] = nil
+        }
+        inFlight[login] = task
+        await task.value
     }
 
     /// Refreshes favorites one at a time, so GitHub never sees a burst.
     public func refreshAll() async {
+        await refreshAll(afterChange: false)
+    }
+
+    func refreshAll(afterChange: Bool) async {
         for login in favorites {
-            await refresh(login)
+            await refresh(login, afterChange: afterChange)
             try? await Task.sleep(for: .milliseconds(400))
         }
     }
@@ -261,7 +311,7 @@ public final class AppModel {
             hasToken = true
             tokenStatus = "Works. Signed in as @\(login). Saved in your Keychain."
             reloadWidgets()
-            await refreshAll()
+            await refreshAll(afterChange: true)
         } catch let e as TrackerError {
             tokenStatus = e.errorDescription
         } catch {

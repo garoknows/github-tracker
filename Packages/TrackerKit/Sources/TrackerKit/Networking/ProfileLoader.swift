@@ -44,8 +44,9 @@ public struct ProfileLoader: Sendable {
 
     public func load(_ login: String) async -> LoadResult {
         do {
-            let (snapshot, overviewError) = try await fetch(login)
-            return LoadResult(snapshot: snapshot, error: nil, overviewError: overviewError)
+            let (snapshot, overviewError, estimated) = try await fetch(login)
+            return LoadResult(snapshot: snapshot, error: estimated ? .countsUnreadable : nil,
+                              overviewError: overviewError, estimated: estimated)
         } catch let error as TrackerError {
             return LoadResult(snapshot: cache.snapshot(for: login), error: error)
         } catch {
@@ -53,21 +54,32 @@ public struct ProfileLoader: Sendable {
         }
     }
 
-    /// Fresh data, plus the error that stopped the Activity overview from refreshing (if any).
-    func fetch(_ login: String) async throws -> (ProfileSnapshot, TrackerError?) {
+    /// Fresh data, the error that stopped the Activity overview from refreshing (if any), and whether
+    /// the daily counts are guesses (then nothing is saved).
+    func fetch(_ login: String) async throws -> (ProfileSnapshot, TrackerError?, estimated: Bool) {
         let tokenLookup = tokens.lookup()
         let token = tokenLookup.token
         var graph: GitHubClient.GraphQLResult?
 
         // 1. Calendar: public HTML, falling back to GraphQL if parsing breaks.
+        //    If only the per-day counts are missing, good saved data wins over guesses. With nothing
+        //    saved, show the colors with guessed counts (marked as such) and never save them.
+        let html = try await client.calendarHTML(for: login)
         let calendar: ContributionCalendar
+        var estimated = false
         do {
-            calendar = try CalendarParser.parse(try await client.calendarHTML(for: login))
-        } catch is CalendarParser.Failure {
-            guard let token else { throw TrackerError.markupChanged }
-            let g = try await client.graphQL(for: login, token: token)
-            graph = g
-            calendar = g.calendar
+            calendar = try CalendarParser.parse(html)
+        } catch {
+            if let token {
+                let g = try await client.graphQL(for: login, token: token)
+                graph = g
+                calendar = g.calendar
+            } else if error == .countsUnreadable, cache.snapshot(for: login) == nil {
+                calendar = try CalendarParser.parse(html, estimateMissingCounts: true)
+                estimated = true
+            } else {
+                throw error == .countsUnreadable ? TrackerError.countsUnreadable : TrackerError.markupChanged
+            }
         }
 
         // 2. Activity overview: public profile first; GraphQL only when the public page doesn't have it.
@@ -123,8 +135,8 @@ public struct ProfileLoader: Sendable {
         }
 
         let snapshot = ProfileSnapshot(profile: profile, calendar: calendar, overview: overview, fetchedAt: now())
-        cache.save(snapshot, profileFetchedAt: profileFetchedAt)
-        return (snapshot, overviewError)
+        if !estimated { cache.save(snapshot, profileFetchedAt: profileFetchedAt) }
+        return (snapshot, overviewError, estimated)
     }
 }
 
