@@ -35,7 +35,7 @@
 - **Stats** — total for the last year, best day, average per day, current streak and longest streak.
 - **Activity overview** — GitHub's four-way chart of Commits, Issues, Pull requests and Code review, read from the public profile. No token needed for most people.
 - **Favorites** — keep up to 10 people and flip between them with a two-finger swipe, the ← → keys or the ◀ ▶ buttons. Your Primary profile shows as a 7-day strip right in the menu bar.
-- **Number in the menu bar (optional)** — Settings → Number in menu bar shows today's count, your current streak or your last-year total next to the icon. It's off unless you turn it on.
+- **Number in the menu bar (optional)** — Settings → Number in menu bar shows your last 7 days, your current streak or your last-year total next to the icon. It's off unless you turn it on.
 - **Widgets** — Small, Medium and Large, on the desktop or in Notification Center, with ◀ ▶ buttons to cycle through up to 5 people.
 - **Works offline** — shows the last data it saw, with "Offline, showing data from 2 hr ago." If GitHub changes its page, it says so instead of guessing.
 - **Themes** — GitHub Green, Halloween, Ocean and Mono, in light and dark.
@@ -115,7 +115,10 @@ macOS widgets only support clicks on buttons, so they have ◀ ▶ instead. Swip
 Yes. Widgets show your app favorites automatically. To show different people in one widget, right-click it → Edit Widget, turn off **Use my app favorites** and type up to 5 usernames.
 
 **What does the number next to the menu bar icon mean?**
-It's off unless you choose one in Settings → Number in menu bar: **Today** (contributions so far today), **Current streak** (days in a row) or **Last year total**. It always describes your Primary profile and matches the card, including after 5 pm in the western US, when GitHub's day has already rolled over. Above 9,999 it's shortened, like 12.3k. Offline it keeps the last number it saw.
+It's off unless you choose one in Settings → Number in menu bar: **Last 7 days** (the same days as the 7-day strip), **Current streak** (days in a row) or **Last year total**. It always describes your Primary profile and matches the card at any hour. Above 9,999 it's shortened, like 12.3k. Offline it keeps the last number it saw.
+
+**Why does the streak say "through" a date instead of "today"?**
+GitHub groups contributions by UTC day, so in the Americas its new day starts in the late afternoon. The streak shows the date of its last active day the way GitHub's own graph labels it, for example "through Nov 12", so it's right at any hour.
 
 **How often does it refresh?**
 Every 30 minutes by default (15 min to 3 hr in Settings). Widgets refresh about every 30 minutes. Refresh in the popover updates right away.

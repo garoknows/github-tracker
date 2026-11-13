@@ -311,7 +311,7 @@ summary{cursor:pointer; font-weight:600}
         </div>
         <div class="desk">
           <div class="desk-left">
-            <div class="desk-note">Menu bar icon: the last 7 days of your Primary profile. Today is the rightmost square.</div>
+            <div class="desk-note">Menu bar icon: the last 7 days of your Primary profile. The rightmost square is GitHub's newest day.</div>
             <div class="desk-note">Trackpad: two-finger swipe left or right on the card. Keyboard: ← and →. Mouse: drag the card, or click the dots.</div>
           </div>
           <div id="popWrap">
@@ -326,7 +326,7 @@ summary{cursor:pointer; font-weight:600}
     <div class="facts">
       <div class="fact"><b>Graph and stats need no login</b>Anyone's public green squares, totals and streaks load from GitHub's public profile data.</div>
       <div class="fact"><b>Quadrant chart</b>Loads from the public profile when it's there. If not, a free read-only token in Settings unlocks it.</div>
-      <div class="fact"><b>Optional number in the menu bar</b>Settings → Number in menu bar shows today's count, your current streak or your last-year total next to the icon. Off unless you turn it on.</div>
+      <div class="fact"><b>Optional number in the menu bar</b>Settings → Number in menu bar shows your last 7 days, your current streak or your last-year total next to the icon. Off unless you turn it on.</div>
       <div class="fact"><b>Widgets use buttons, not swipes</b>macOS widgets can't be swiped, so Medium and Large widgets have ◀ ▶ buttons that flip favorites.</div>
       <div class="fact"><b>Private by design</b>No account, no server, no tracking. The app talks only to github.com. Your token stays in the Keychain.</div>
     </div>
@@ -424,7 +424,7 @@ summary{cursor:pointer; font-weight:600}
           <li>Flip between them with a two-finger swipe, the ← → keys, or the ◀ ▶ buttons.</li>
         </ol>
         <div class="callout tipc">Want it to start automatically? Open <b>Settings</b> in the popover and turn on <b>Launch at login</b>.</div>
-        <div class="callout tipc">Want a number next to the icon? <b>Settings → Number in menu bar</b> shows today's count, your current streak or your last-year total. It's off until you pick one.</div>
+        <div class="callout tipc">Want a number next to the icon? <b>Settings → Number in menu bar</b> shows your last 7 days, your current streak or your last-year total. It's off until you pick one.</div>
       </div>
       <figure style="margin:0">
         <div class="screen">
@@ -572,9 +572,9 @@ function computeStats(days){
   var total = 0, best = {count:0,date:null}, longest = 0, run = 0, ls = null, bestRun = {s:null,e:null};
   var yearDays = days.filter(function(x){ return (TODAY - x.date) <= 364*86400000; });
   yearDays.forEach(function(x){ total += x.count; if (x.count > best.count) best = x; if (x.count>0){ run++; if (run===1) ls = x.date; if (run>longest){ longest = run; bestRun = {s:ls, e:x.date}; } } else run = 0; });
-  var cur = 0, i = yearDays.length-1; if (yearDays[i] && yearDays[i].count===0) i--; for (; i>=0 && yearDays[i].count>0; i--) cur++;
+  var cur = 0, curEnd = null, i = yearDays.length-1; if (yearDays[i] && yearDays[i].count===0) i--; if (i>=0 && yearDays[i].count>0) curEnd = yearDays[i].date; for (; i>=0 && yearDays[i].count>0; i--) cur++;
   var max = 0; days.forEach(function(x){ if (x.count>max) max = x.count; });
-  return {total:total, best:best, avg:(total/365), longest:longest, current:cur, max:max, bestRun:bestRun};
+  return {total:total, best:best, avg:(total/365), longest:longest, current:cur, currentEnd:curEnd, max:max, bestRun:bestRun};
 }
 var profiles = [
   makeProfile({user:"garoknows", name:null, days:garoDays(), quad:{commits:49, issues:43, prs:8, review:0}, color:"#24292f", note:"Sample shaped like your profile"}),
@@ -587,6 +587,9 @@ var primary = 0;
 var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmt(d){ return MON[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(); }
 function fmtShort(d){ return MON[d.getMonth()]+" "+d.getDate(); }
+/* The streak's last active day, as GitHub dates it (like GitHub's own graph labels). */
+function through(st){ return st.currentEnd ? "through "+fmtShort(st.currentEnd) : null; }
+function streakWords(st){ var t = through(st); return t ? (st.current===1 ? "day " : "days ")+t : "day streak"; }
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function lvl(c, max){ if (!c) return 0; var q = c / Math.max(max,1); return q <= .25 ? 1 : q <= .5 ? 2 : q <= .75 ? 3 : 4; }
 function initials(p){ var s = (p.name || p.user).split(/\s+/); return (s[0][0] + (s[1] ? s[1][0] : "")).toUpperCase(); }
@@ -646,7 +649,7 @@ function cardHTML(p){
       stat("Total", s.total.toLocaleString(), "last 12 months")+
       stat("Best day", s.best.count, s.best.date ? fmtShort(s.best.date) : "–")+
       stat("Average", s.avg.toFixed(2), "per day")+
-      stat("Current streak", s.current+" day"+(s.current===1?"":"s"), s.current ? "ends today" : "no activity today")+
+      stat("Current streak", s.current+" day"+(s.current===1?"":"s"), through(s) || "no recent activity")+
       stat("Longest streak", s.longest+" day"+(s.longest===1?"":"s"), s.bestRun.s ? fmtShort(s.bestRun.s)+" – "+fmtShort(s.bestRun.e) : "–")+
     '</div>'+
     '<div class="overview"><div class="ov-text"><b>Activity overview</b><br>'+(p.quad ? 'Share of '+esc(p.name||p.user)+"'s activity this year across commits, issues, pull requests and code review." : 'This chart appears when GitHub shares it for this profile.')+'</div>'+quadBlock(p, 200)+'</div></div>';
@@ -672,7 +675,7 @@ function renderSettings(){
   html += '<h4>General</h4><div class="row"><label for="intv">Refresh every</label><select id="intv">'+[["15","15 minutes"],["30","30 minutes"],["60","1 hour"],["180","3 hours"]].map(function(o){ return '<option value="'+o[0]+'"'+(state.interval===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join("")+'</select></div>';
   html += '<div class="row"><label id="lalbl">Launch at login</label><button type="button" class="switch" role="switch" aria-labelledby="lalbl" aria-checked="'+state.launchAtLogin+'" data-act="login"></button></div>';
   html += '<div class="row"><label>Menu bar icon</label><div class="seg" style="border-color:var(--m-border);background:var(--m-surface)"><button type="button" data-icon="strip" aria-pressed="'+(state.iconStyle==="strip")+'" style="color:var(--m-fg)">7-day strip</button><button type="button" data-icon="glyph" aria-pressed="'+(state.iconStyle==="glyph")+'" style="color:var(--m-fg)">Simple icon</button></div></div>';
-  html += '<div class="row"><label for="mbnum">Number in menu bar</label><select id="mbnum">'+[["off","Off"],["today","Today"],["streak","Current streak"],["total","Last year total"]].map(function(o){ return '<option value="'+o[0]+'"'+(state.mbNumber===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join("")+'</select></div>';
+  html += '<div class="row"><label for="mbnum">Number in menu bar</label><select id="mbnum">'+[["off","Off"],["week","Last 7 days"],["streak","Current streak"],["total","Last year total"]].map(function(o){ return '<option value="'+o[0]+'"'+(state.mbNumber===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join("")+'</select></div>';
   html += '<h4>Color theme</h4><div class="chips">'+themeChips()+'</div>';
   html += '<h4>About</h4><p class="note" style="margin:0">Version 1.2.0 · MIT license · github.com/garoknows/github-tracker · <button type="button" class="mini" data-act="updates">Check for updates</button></p></div>';
   pop.innerHTML = html;
@@ -688,8 +691,8 @@ function compactNumber(n){
   return String(v) + suffix;
 }
 function menuBarNumber(p){
-  if (state.mbNumber === "today") return { n: p.days[p.days.length-1].count, label: function(n){ return n+" contribution"+(n===1?"":"s")+" today"; } };
-  if (state.mbNumber === "streak") return { n: p.stats.current, label: function(n){ return "current streak "+n+" day"+(n===1?"":"s"); } };
+  if (state.mbNumber === "week") return { n: p.days.slice(-7).reduce(function(a,d){ return a+d.count; }, 0), label: function(n){ return n.toLocaleString("en-US")+" contribution"+(n===1?"":"s")+" in the last 7 days"; } };
+  if (state.mbNumber === "streak") return { n: p.stats.current, label: function(n){ var t = through(p.stats); return "current streak "+n+" day"+(n===1?"":"s")+(t ? ", "+t : ""); } };
   if (state.mbNumber === "total") return { n: p.stats.total, label: function(n){ return n.toLocaleString("en-US")+" contribution"+(n===1?"":"s")+" in the last year"; } };
   return null;
 }
@@ -717,8 +720,8 @@ function renderWidgets(){
   function wdots(i){ return '<div class="wdots">'+profiles.map(function(_,j){ return '<i class="'+(j===i?"on":"")+'"></i>'; }).join("")+'</div>'; }
   var small = '<div class="widget w-small">'+head(p0)+'<div style="margin-top:8px">'+graphSVG(p0, 12, {labels:false, cell:9, gap:2.4, h:82})+'</div><div style="margin-top:6px;display:flex;align-items:baseline;gap:6px"><span class="big">'+p0.stats.total+'</span><span class="sub">past year</span></div></div>';
   var mi = state.widgetIdx.medium % profiles.length, li = state.widgetIdx.large % profiles.length;
-  var medium = '<div class="widget w-medium">'+head(pm)+arrows("medium")+'<div style="margin-top:8px">'+graphSVG(pm, 20, {labels:false, cell:12, gap:3, h:80})+'</div><div class="wstats"><span><b>'+pm.stats.total+'</b> past year</span><span><b>'+pm.stats.current+'</b> day streak</span><span>Best <b>'+pm.stats.best.count+'</b></span></div>'+wdots(mi)+'</div>';
-  var large = '<div class="widget w-large">'+head(pl)+arrows("large")+'<div style="margin-top:10px">'+graphSVG(pl, 26, {labels:true, cell:9.5, gap:2.6, h:118})+'</div><div class="wstats"><span><b>'+pl.stats.total+'</b> past year</span><span><b>'+pl.stats.current+'</b> current</span><span><b>'+pl.stats.longest+'</b> longest</span></div><div style="margin-top:4px;height:172px">'+(pl.quad ? '<div style="width:184px;margin:0 auto">'+quadSVG(pl.quad, 184)+'</div>' : '<div class="quad-empty" style="height:150px;margin-top:8px">Activity overview is off for this profile.</div>')+'</div>'+wdots(li)+'</div>';
+  var medium = '<div class="widget w-medium">'+head(pm)+arrows("medium")+'<div style="margin-top:8px">'+graphSVG(pm, 20, {labels:false, cell:12, gap:3, h:80})+'</div><div class="wstats"><span><b>'+pm.stats.total+'</b> past year</span><span><b>'+pm.stats.current+'</b> '+streakWords(pm.stats)+'</span><span>Best <b>'+pm.stats.best.count+'</b></span></div>'+wdots(mi)+'</div>';
+  var large = '<div class="widget w-large">'+head(pl)+arrows("large")+'<div style="margin-top:10px">'+graphSVG(pl, 26, {labels:true, cell:9.5, gap:2.6, h:118})+'</div><div class="wstats"><span><b>'+pl.stats.total+'</b> past year</span><span><b>'+pl.stats.current+'</b> '+streakWords(pl.stats)+'</span><span><b>'+pl.stats.longest+'</b> longest</span></div><div style="margin-top:4px;height:172px">'+(pl.quad ? '<div style="width:184px;margin:0 auto">'+quadSVG(pl.quad, 184)+'</div>' : '<div class="quad-empty" style="height:150px;margin-top:8px">Activity overview is off for this profile.</div>')+'</div>'+wdots(li)+'</div>';
   document.getElementById("widgets").innerHTML =
     '<div class="wcol">'+small+'<span class="wcap">Small</span></div>'+
     '<div class="wcol">'+medium+'<span class="wcap">Medium · ◀ ▶ flips favorites</span></div>'+

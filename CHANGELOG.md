@@ -5,9 +5,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
 ## [1.2.0] - Unreleased
 
 ### Added
-- **Optional number next to the menu bar icon.** In **Settings → Number in menu bar**, pick **Today**, **Current streak** or **Last year total** for your Primary profile. It's off unless you turn it on, so nothing changes when you update. It always matches the card (including after 5 pm in the western US, when GitHub's day has rolled over), uses evenly spaced digits so the menu bar doesn't jump, shortens big numbers (12.3k), keeps the last number while offline, and VoiceOver reads it in full ("5 contributions today").
+- **Optional number next to the menu bar icon.** In **Settings → Number in menu bar**, pick **Last 7 days** (the same days as the 7-day strip), **Current streak** or **Last year total** for your Primary profile. It's off unless you turn it on, so nothing changes when you update. It always matches the card, uses evenly spaced digits so the menu bar doesn't jump, shortens big numbers (12.3k), keeps the last number while offline, and VoiceOver reads it in full ("14 contributions in the last 7 days").
 
 ### Fixed
+- **The current streak shows the date of its last active day**, like GitHub's own graph labels ("through Nov 12"), in the popover, the Medium and Large widgets and VoiceOver. "Ends today" and "ends yesterday" were misleading in the evening west of UTC, because GitHub groups contributions by UTC day.
 - **If GitHub changes the hover text that holds daily counts, the app says so** ("GitHub changed its page, daily counts may be off.") instead of quietly guessing one contribution per colored day. Your last good data stays on screen and is never overwritten by guesses. With a token, the real counts come from GitHub's API instead.
 - A favorite whose GitHub account was deleted now says "GitHub has no user named @name anymore" instead of "Offline".
 - A changed GitHub page is no longer described as "Offline".
