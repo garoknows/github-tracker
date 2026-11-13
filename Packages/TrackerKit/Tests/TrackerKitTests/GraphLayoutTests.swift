@@ -5,6 +5,15 @@ import Testing
 
 /// Regression tests for the 1.0.0 bug: the year graph collapsed to zero height inside the menu bar
 /// popover, because it was fully flexible and the popover measured its content with no room for it.
+/// Tests that put real windows on your screen. Off by default, in normal runs and on CI; turn on with
+/// `TRACKER_LIVE_UI_TESTS=1` only when regenerating screenshots (see CONTRIBUTING.md).
+enum LiveUITests {
+    static func enabled(environment: [String: String] = ProcessInfo.processInfo.environment,
+                        hasScreen: Bool = false) -> Bool {
+        false // STUB
+    }
+}
+
 @MainActor
 @Suite("Graph layout", .serialized)
 struct GraphLayoutTests {

@@ -112,6 +112,10 @@ public struct WidgetCardView<Navigation: View>: View {
         }
     }
 
+    /// Label next to the widget's total. The total covers the last 12 months (like "in the last year"
+    /// in the popover), not the calendar year. Stub until the label changes.
+    static var totalLabel: String { "this year" }
+
     private func stat(_ value: String, _ label: String) -> some View {
         HStack(spacing: 3) {
             Text(value).bold().foregroundStyle(Palette(scheme).fg)
