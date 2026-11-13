@@ -577,7 +577,7 @@ function computeStats(days){
   return {total:total, best:best, avg:(total/365), longest:longest, current:cur, max:max, bestRun:bestRun};
 }
 var profiles = [
-  makeProfile({user:"garoknows", name:"Garo", days:garoDays(), quad:{commits:49, issues:43, prs:8, review:0}, color:"#24292f", note:"Sample shaped like your profile"}),
+  makeProfile({user:"garoknows", name:null, days:garoDays(), quad:{commits:49, issues:43, prs:8, review:0}, color:"#24292f", note:"Sample shaped like your profile"}),
   makeProfile({user:"mira-builds", name:"Mira Patel", days:steadyDays("mira-builds", .82, 14, .35), quad:{commits:62, issues:14, prs:16, review:8}, note:"Fictional sample profile"}),
   makeProfile({user:"nightshift-dev", name:"Theo Novak", days:steadyDays("nightshift-dev", .32, 6, 2.6), quad:null, quadReason:"off", note:"Fictional sample profile"})
 ];
