@@ -20,6 +20,30 @@ struct WidgetLabelTests {
         // Small, medium and large each show the total with the shared label.
         #expect(code.components(separatedBy: "Self.totalLabel").count - 1 == 3)
     }
+
+    @Test func streakSaysThroughGitHubsDate() {
+        let end = CivilDate("2026-11-12")!
+        typealias W = WidgetCardView<EmptyView>
+        #expect(W.streakLabel(.init(length: 7, start: end.adding(days: -6), end: end)) == "days through Nov 12")
+        #expect(W.streakLabel(.init(length: 1, start: end, end: end)) == "day through Nov 12")
+        #expect(W.streakLabel(.none) == "day streak")
+    }
+
+    /// "ends today" / "ends yesterday" misled people west of UTC in the evening; no view may use them.
+    @Test func noStreakSaysEndsTodayOrYesterday() throws {
+        let sources = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/TrackerKit")
+        let files = try #require(FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil))
+            .compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
+        #expect(files.count > 10)
+        for file in files {
+            let code = try String(contentsOf: file, encoding: .utf8)
+            for phrase in ["ends today", "ends yesterday", "no activity today"] {
+                #expect(!code.contains(phrase), "\(file.lastPathComponent) says \(phrase)")
+            }
+        }
+    }
 }
 
 /// Tests that put real windows on screen only run when asked to (TRACKER_LIVE_UI_TESTS=1).

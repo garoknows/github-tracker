@@ -5,7 +5,7 @@ import AppKit
 /// It always describes the Primary profile and uses the same "today" as the 7-day strip
 /// (`ContributionCalendar.today(forLocal:)`), so it matches the card at any hour.
 public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
-    case off, today, currentStreak, lastYear
+    case off, today, lastSevenDays, currentStreak, lastYear // STUB
 
     public var id: String { rawValue }
 
@@ -13,6 +13,7 @@ public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .off: "Off"
         case .today: "Today"
+        case .lastSevenDays: "Last 7 days"
         case .currentStreak: "Current streak"
         case .lastYear: "Last year total"
         }
@@ -25,7 +26,7 @@ public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .off:
             return nil
-        case .today:
+        case .today, .lastSevenDays:
             let today = calendar.today(forLocal: local)
             return calendar.days.last { $0.date == today }?.count ?? 0
         case .currentStreak:
@@ -56,11 +57,14 @@ public enum MenuBarNumber: String, CaseIterable, Identifiable, Sendable {
         let n = value.formatted(.number.locale(locale))
         switch self {
         case .off: return app
-        case .today: return "\(app), \(value == 1 ? "1 contribution" : "\(n) contributions") today"
+        case .today, .lastSevenDays: return "\(app), \(value == 1 ? "1 contribution" : "\(n) contributions") today"
         case .currentStreak: return "\(app), current streak \(value == 1 ? "1 day" : "\(n) days")"
         case .lastYear: return "\(app), \(value == 1 ? "1 contribution" : "\(n) contributions") in the last year"
         }
     }
+
+    /// STUB
+    public func accessibilityLabel(for snapshot: ProfileSnapshot?, today: CivilDate, locale: Locale = .current) -> String { "" }
 
     /// The menu bar's own font, with digits all the same width so nothing shifts as the number changes.
     public static func font() -> NSFont {

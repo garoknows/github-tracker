@@ -62,7 +62,23 @@ struct MenuBarNumberTests {
     }
 
     @Test func settingsNames() {
-        #expect(MenuBarNumber.allCases.map(\.name) == ["Off", "Today", "Current streak", "Last year total"])
+        #expect(MenuBarNumber.allCases.map(\.name) == ["Off", "Last 7 days", "Current streak", "Last year total"])
+    }
+
+    @Test func aSavedTodayChoiceBecomesLastSevenDays() {
+        // "Today" counted GitHub's newest UTC day, which drops to 0 every afternoon in the Americas.
+        let defaults = scratchDefaults()
+        defaults.set("today", forKey: "menuBarNumber")
+        #expect(Preferences(defaults: defaults).menuBarNumber == .lastSevenDays)
+        #expect(model(defaults: defaults).menuBarNumber == .lastSevenDays)
+    }
+
+    @Test func lastSevenDaysDoesNotDropToZeroAtSixPMInLasVegas() {
+        // 14 contributions this week, none yet on GitHub's new UTC day (which started at 5 pm).
+        let today = localDay("2026-10-26", hour: 18, "America/Los_Angeles")
+        let snap = snapshot(calendar(ending: "2026-10-27", [0, 2, 1, 1, 3, 1, 6, 0]))
+        #expect(MenuBarNumber.lastSevenDays.value(for: snap, today: today) == 14)
+        #expect(MenuBarNumber.lastSevenDays.title(for: snap, today: today, locale: us) == "14")
     }
 
     @Test func matchesTheCardAtSixPMInLasVegas() {
@@ -72,8 +88,9 @@ struct MenuBarNumberTests {
         let snap = snapshot(cal)
         let stats = ContributionStats(calendar: cal, today: today)
 
-        #expect(MenuBarNumber.today.value(for: snap, today: today) == MenuBarIcon.stripDays(cal, today: today).last?.count)
-        #expect(MenuBarNumber.today.value(for: snap, today: today) == 5)
+        let strip = MenuBarIcon.stripDays(cal, today: today)
+        #expect(MenuBarNumber.lastSevenDays.value(for: snap, today: today) == strip.map(\.count).reduce(0, +))
+        #expect(MenuBarNumber.lastSevenDays.value(for: snap, today: today) == 14)
         #expect(MenuBarNumber.currentStreak.value(for: snap, today: today) == stats.currentStreak.length)
         #expect(MenuBarNumber.currentStreak.value(for: snap, today: today) == 7)
         #expect(MenuBarNumber.lastYear.value(for: snap, today: today) == stats.total)
@@ -84,12 +101,12 @@ struct MenuBarNumberTests {
         let today = CivilDate("2026-10-26")!
         let snap = snapshot(calendar(ending: "2026-10-26", [4, 0, 2, 3, 12_340]))
         #expect(MenuBarNumber.off.title(for: snap, today: today, locale: us) == nil)
-        #expect(MenuBarNumber.today.title(for: snap, today: today, locale: us) == "12.3k")
+        #expect(MenuBarNumber.lastSevenDays.title(for: snap, today: today, locale: us) == "12.3k")
         #expect(MenuBarNumber.currentStreak.title(for: snap, today: today, locale: us) == "3")
         #expect(MenuBarNumber.lastYear.title(for: snap, today: today, locale: us) == "12.3k")
 
         let quiet = snapshot(calendar(ending: "2026-10-26", [1, 1, 0]))
-        #expect(MenuBarNumber.today.title(for: quiet, today: today, locale: us) == "0")
+        #expect(MenuBarNumber.lastSevenDays.title(for: quiet, today: today, locale: us) == "2")
         #expect(MenuBarNumber.currentStreak.title(for: quiet, today: today, locale: us) == "2")
         #expect(MenuBarNumber.lastYear.title(for: quiet, today: today, locale: us) == "2")
     }
@@ -97,7 +114,7 @@ struct MenuBarNumberTests {
     @Test func nothingBeforeAnyDataHasLoaded() {
         for option in MenuBarNumber.allCases {
             #expect(option.title(for: nil, today: CivilDate("2026-10-26")!, locale: us) == nil)
-            #expect(option.accessibilityLabel(value: nil, locale: us) == "Tracker for GitHub")
+            #expect(option.accessibilityLabel(for: nil, today: CivilDate("2026-10-26")!, locale: us) == "Tracker for GitHub")
         }
     }
 
@@ -109,13 +126,21 @@ struct MenuBarNumberTests {
     }
 
     @Test func voiceOverLabels() {
-        #expect(MenuBarNumber.today.accessibilityLabel(value: 5, locale: us) == "Tracker for GitHub, 5 contributions today")
-        #expect(MenuBarNumber.today.accessibilityLabel(value: 1, locale: us) == "Tracker for GitHub, 1 contribution today")
-        #expect(MenuBarNumber.currentStreak.accessibilityLabel(value: 7, locale: us) == "Tracker for GitHub, current streak 7 days")
-        #expect(MenuBarNumber.currentStreak.accessibilityLabel(value: 1, locale: us) == "Tracker for GitHub, current streak 1 day")
-        #expect(MenuBarNumber.lastYear.accessibilityLabel(value: 12_345, locale: us)
+        let today = CivilDate("2026-10-26")!
+        let week = snapshot(calendar(ending: "2026-10-26", [0, 2, 1, 1, 3, 1, 1, 5]))
+        let one = snapshot(calendar(ending: "2026-10-26", [0, 0, 0, 0, 0, 0, 1]))
+        let big = snapshot(calendar(ending: "2026-10-26", [12_340, 0, 5]))
+        #expect(MenuBarNumber.lastSevenDays.accessibilityLabel(for: week, today: today, locale: us)
+                == "Tracker for GitHub, 14 contributions in the last 7 days")
+        #expect(MenuBarNumber.lastSevenDays.accessibilityLabel(for: one, today: today, locale: us)
+                == "Tracker for GitHub, 1 contribution in the last 7 days")
+        #expect(MenuBarNumber.currentStreak.accessibilityLabel(for: week, today: today, locale: us)
+                == "Tracker for GitHub, current streak 7 days, through Oct 26")
+        #expect(MenuBarNumber.currentStreak.accessibilityLabel(for: one, today: today, locale: us)
+                == "Tracker for GitHub, current streak 1 day, through Oct 26")
+        #expect(MenuBarNumber.lastYear.accessibilityLabel(for: big, today: today, locale: us)
                 == "Tracker for GitHub, 12,345 contributions in the last year")
-        #expect(MenuBarNumber.off.accessibilityLabel(value: 5, locale: us) == "Tracker for GitHub")
+        #expect(MenuBarNumber.off.accessibilityLabel(for: week, today: today, locale: us) == "Tracker for GitHub")
     }
 
     @Test func digitsAllHaveTheSameWidth() {

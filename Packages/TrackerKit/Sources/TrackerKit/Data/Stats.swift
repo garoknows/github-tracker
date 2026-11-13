@@ -18,6 +18,9 @@ public struct ContributionStats: Hashable, Sendable {
     /// True when today has no contributions yet but yesterday did, so the current streak is still alive.
     public let currentStreakEndsYesterday: Bool
 
+    /// STUB
+    public var currentStreakSubtitle: String { "" }
+
     /// - Parameters:
     ///   - localToday: the viewer's local date. GitHub's last day may be one day later (it uses UTC);
     ///     that day then counts as today. See `ContributionCalendar.today(forLocal:)`.

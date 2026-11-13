@@ -116,6 +116,9 @@ public struct WidgetCardView<Navigation: View>: View {
     /// in the popover), not the calendar year.
     static var totalLabel: String { "past year" }
 
+    /// STUB
+    static func streakLabel(_ streak: ContributionStats.Streak) -> String { "" }
+
     private func stat(_ value: String, _ label: String) -> some View {
         HStack(spacing: 3) {
             Text(value).bold().foregroundStyle(Palette(scheme).fg)
