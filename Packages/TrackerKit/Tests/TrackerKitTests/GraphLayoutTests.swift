@@ -10,8 +10,11 @@ import Testing
 enum LiveUITests {
     static func enabled(environment: [String: String] = ProcessInfo.processInfo.environment,
                         hasScreen: Bool = false) -> Bool {
-        false // STUB
+        environment["TRACKER_LIVE_UI_TESTS"] == "1" && hasScreen
     }
+
+    /// For `.enabled(if:)`: the variable is set to 1 and there is a screen to draw on.
+    static var enabled: Bool { enabled(hasScreen: NSScreen.main != nil) }
 }
 
 @MainActor
@@ -42,7 +45,9 @@ struct GraphLayoutTests {
 
     /// Opens a real NSPopover on screen, exactly like the app, checks the graph was laid out with real
     /// height (in 1.0.0 it got almost none), and saves a screenshot of the live pixels.
-    @Test(.enabled(if: NSScreen.main != nil), arguments: [false, true])
+    /// Puts windows on your screen, so it only runs with TRACKER_LIVE_UI_TESTS=1.
+    @Test(.enabled(if: LiveUITests.enabled, "Puts windows on screen: set TRACKER_LIVE_UI_TESTS=1 to run"),
+          arguments: [false, true])
     func livePopover(dark: Bool) throws {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.accessory)
