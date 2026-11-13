@@ -2,7 +2,7 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [1.2.0] - Unreleased
+## [1.2.0] - 2026-11-13
 
 ### Added
 - **Optional number next to the menu bar icon.** In **Settings → Number in menu bar**, pick **Last 7 days** (the same days as the 7-day strip), **Current streak** or **Last year total** for your Primary profile. It's off unless you turn it on, so nothing changes when you update. It always matches the card, uses evenly spaced digits so the menu bar doesn't jump, shortens big numbers (12.3k), keeps the last number while offline, and VoiceOver reads it in full ("14 contributions in the last 7 days").
